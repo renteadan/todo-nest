@@ -5,11 +5,17 @@ import {
   Patch,
   Param,
   Delete,
+  SerializeOptions,
+  StandardSchemaSerializerInterceptor,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import { type UpdateUserDto, updateUserSchema } from './dto/update-user.dto.js';
+import { userResponseSchema } from './dto/user-response.dto.js';
 
 @Controller('users')
+@UseInterceptors(StandardSchemaSerializerInterceptor)
+@SerializeOptions({ schema: userResponseSchema })
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
