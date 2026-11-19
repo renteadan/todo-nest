@@ -9,6 +9,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { promisify } from 'node:util';
+import { type AccessTokenResult, TokenService } from '@nestjs/authentication';
 import { UsersService } from '../users/users.service.js';
 import {
   type RegisterUserDto,
@@ -19,7 +20,10 @@ const argon2 = promisify(argon2Callback);
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly tokenService: TokenService,
+  ) {}
 
   async register(
     createUserDto: RegisterUserDto,
@@ -40,7 +44,7 @@ export class AuthService {
     return this.toResponse(user);
   }
 
-  async login(email: string, password: string): Promise<RegisterUserResponse> {
+  async login(email: string, password: string): Promise<AccessTokenResult> {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
@@ -52,7 +56,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.toResponse(user);
+    return this.tokenService.issue(String(user.id), { method: 'password' });
   }
 
   private hashPassword(password: string, salt: string) {

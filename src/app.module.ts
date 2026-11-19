@@ -3,7 +3,8 @@ import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthenticationModule } from '@nestjs/authentication';
 import { AuthModule } from './auth/auth.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
@@ -20,6 +21,18 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     }),
     UsersModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    AuthenticationModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        accessToken: {
+          key: config.getOrThrow<string>('JWT_SECRET'),
+          issuer: 'v12',
+          audience: 'v12',
+          ttl: '15m',
+        },
+        refreshToken: false,
+      }),
+    }),
     AuthModule,
   ],
   controllers: [AppController],

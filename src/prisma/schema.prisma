@@ -33,13 +33,12 @@ model TaskList {
 }
 
 model User {
-  createdAt DateTime   @default(now()) @db.Timestamptz(3)
-  email     String     @unique
   id        Int        @id @default(autoincrement())
+	email     String     @unique
   name      String?
   password  String
   salt      String
+	createdAt DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt DateTime   @db.Timestamptz(3)
-  username  String?
   TaskList  TaskList[]
 }
