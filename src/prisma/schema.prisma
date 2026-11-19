@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Task {
+  completedAt DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  description String?
+  id          Int       @id @default(autoincrement())
+  taskListId  Int
+  title       String
+  updatedAt   DateTime  @db.Timestamptz(3)
+  TaskList    TaskList  @relation(fields: [taskListId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([taskListId], map: "Task_taskListId_idx_ec08b633")
+}
+
+model TaskList {
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  id        Int      @id @default(autoincrement())
+  title     String
+  updatedAt DateTime @db.Timestamptz(3)
+  userId    Int
+  Task      Task[]
+  User      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId], map: "TaskList_userId_idx_a489d58a")
+}
+
+model User {
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  email     String     @unique
+  id        Int        @id @default(autoincrement())
+  name      String?
+  password  String
+  salt      String
+  updatedAt DateTime   @db.Timestamptz(3)
+  username  String?
+  TaskList  TaskList[]
+}
