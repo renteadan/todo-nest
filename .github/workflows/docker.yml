@@ -17,13 +17,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - target: runtime
-            image: ghcr.io/${{ github.repository_owner }}/todo-nest
-          - target: migrate
-            image: ghcr.io/${{ github.repository_owner }}/todo-nest-migrate
     steps:
       - uses: actions/checkout@v4
 
@@ -38,7 +31,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ matrix.image }}
+          images: ghcr.io/${{ github.repository_owner }}/todo-nest
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
@@ -47,14 +40,13 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.target }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+          cache-from: type=gha,scope=runtime
+          cache-to: type=gha,mode=max,scope=runtime
 
-  # Pins the images just built in k8s/kustomization.yaml and commits it;
+  # Pins the image just built in k8s/kustomization.yaml and commits it;
   # Argo CD sees the commit and rolls out. Commits made with GITHUB_TOKEN
   # don't trigger workflows, so this doesn't loop.
   deploy:
@@ -70,14 +62,12 @@ jobs:
 
       - uses: imranismail/setup-kustomize@v2
 
-      - name: Pin image tags
+      - name: Pin image tag
         working-directory: k8s
         run: |
           tag="sha-${GITHUB_SHA::7}" # the tag docker/metadata-action's type=sha produces
           owner="${GITHUB_REPOSITORY_OWNER,,}"
-          kustomize edit set image \
-            "ghcr.io/${owner}/todo-nest=ghcr.io/${owner}/todo-nest:${tag}" \
-            "ghcr.io/${owner}/todo-nest-migrate=ghcr.io/${owner}/todo-nest-migrate:${tag}"
+          kustomize edit set image "ghcr.io/${owner}/todo-nest=ghcr.io/${owner}/todo-nest:${tag}"
 
       - name: Commit and push
         run: |

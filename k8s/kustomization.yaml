@@ -18,6 +18,3 @@ images:
 - name: ghcr.io/renteadan/todo-nest
   newName: ghcr.io/renteadan/todo-nest
   newTag: sha-a1dacf7
-- name: ghcr.io/renteadan/todo-nest-migrate
-  newName: ghcr.io/renteadan/todo-nest-migrate
-  newTag: sha-a1dacf7

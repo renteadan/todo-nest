@@ -1,18 +1,14 @@
+# Plain HTTP: Traefik listens on the host's port 9090 (cluster/traefik-config.yaml),
+# and nginx in front terminates HTTPS and proxies the domain here
+# (nginx/todo-nest.conf). nginx forwards the Host header, so the rule matches.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: todo-nest
-  annotations:
-    # cert-manager requests a Let's Encrypt certificate into `todo-nest-tls`.
-    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: traefik # bundled with k3s
-  tls:
-    - hosts:
-        - api.example.com # TODO: your domain
-      secretName: todo-nest-tls
   rules:
-    - host: api.example.com # TODO: your domain
+    - host: api.example.com # TODO: your domain (same as server_name in nginx)
       http:
         paths:
           - path: /

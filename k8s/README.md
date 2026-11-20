@@ -3,17 +3,20 @@
 These manifests run the API on a k3s cluster:
 
 - **Postgres** runs as a StatefulSet, with its data on the node's disk (the `local-path` storage class).
-- **The API** runs as a Deployment with 2 replicas. Before the app starts, an init container applies pending Prisma migrations.
-- **Traefik**, which comes with k3s, handles ingress, and cert-manager provides HTTPS through Let's Encrypt.
+- **The API** runs as a Deployment with 2 replicas. Each container applies pending Prisma migrations before it starts the API.
+- **nginx** on the host keeps ports 80 and 443 and terminates HTTPS, with a certbot certificate. It proxies the app's domain to **Traefik**, k3s's ingress, which listens on port 9090:
+  ```
+  client ──https:443──▶ nginx ──http:9090──▶ Traefik ──▶ todo-nest Service ──▶ pods
+  ```
 - **Argo CD** syncs this folder from `main`.
 - **Secrets** are created by hand with `kubectl` and never go into git. Argo CD doesn't manage them.
 
 ## How a release flows
 
 1. You push to `main`.
-2. [.github/workflows/docker.yml](../.github/workflows/docker.yml) builds `ghcr.io/renteadan/todo-nest` and `ghcr.io/renteadan/todo-nest-migrate`, and tags both `sha-<commit>`.
+2. [.github/workflows/docker.yml](../.github/workflows/docker.yml) builds `ghcr.io/renteadan/todo-nest` and tags it `sha-<commit>`.
 3. The workflow's `deploy` job writes that tag into [kustomization.yaml](kustomization.yaml) (`images:`) and commits `deploy: <sha>` to `main`.
-4. Argo CD sees the commit and rolls out the new version. Migrations run in the init container before any new pod takes traffic.
+4. Argo CD sees the commit and rolls out the new version. Each new pod applies pending migrations before it starts the API, so no new pod takes traffic before its migrations are done.
 
 To roll back, revert the `deploy:` commit, or pick an older sync in the Argo CD UI.
 
@@ -23,19 +26,22 @@ If `main` is protected by branch rules, allow GitHub Actions to push to it. Othe
 
 Run the `kubectl` commands where you have the cluster's kubeconfig.
 
-1. **DNS.** Point an A record for your domain to the server's public IP. Open ports 80 and 443. Let's Encrypt needs port 80 for its HTTP challenge.
+1. **DNS and domain.** Point an A record for your domain to the server's public IP. Replace `api.example.com` in [ingress.yaml](ingress.yaml) with that domain.
 
-2. **Domain.** Replace `api.example.com` in [ingress.yaml](ingress.yaml) (it appears twice).
+2. **Move Traefik to port 9090.** By default, k3s's Traefik takes ports 80 and 443, which nginx already uses.
+   ```sh
+   kubectl apply -f k8s/cluster/traefik-config.yaml
+   kubectl -n kube-system get svc traefik   # PORT(S) shows 9090 and 9443 after a few seconds
+   curl -i http://<server-ip>:9090/         # 404 from Traefik means it's listening
+   ```
+   Port 9090 serves the app over plain HTTP. Block 9090 and 9443 from the internet on your router or provider firewall, so the only public way in is through nginx. `ufw` alone may not be enough, because k3s's port mapping goes around it.
 
-3. **cert-manager.**
-   ```sh
-   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml
-   kubectl -n cert-manager rollout status deploy/cert-manager-webhook
-   ```
-   Then set your email in [cluster-issuer.yaml](cluster-issuer.yaml) and apply it:
-   ```sh
-   kubectl apply -f k8s/cluster-issuer.yaml
-   ```
+3. **nginx and HTTPS.** [nginx/todo-nest.conf](nginx/todo-nest.conf) is the site config. Replace `api.example.com` and `<server-ip>` in it. nginx refuses to start with a certificate that doesn't exist yet, so get the certificate first:
+   1. Install only the first `server { listen 80; ... }` block as `/etc/nginx/sites-available/todo-nest`. Link it into `sites-enabled`, then run `sudo nginx -t && sudo systemctl reload nginx`.
+   2. Run `sudo certbot certonly --webroot -w /var/www/html -d api.example.com`.
+   3. Install the full file, then run `sudo nginx -t && sudo systemctl reload nginx` again.
+
+   certbot's systemd timer renews the certificate. Add `--deploy-hook "systemctl reload nginx"` to the certbot command, so nginx picks up each renewed certificate.
 
 4. **Namespace.** Create it now, so the secrets have somewhere to go before Argo CD's first sync:
    ```sh
@@ -79,9 +85,10 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
 9. **Check.**
    ```sh
-   kubectl -n todo-nest get certificate   # READY=True after a minute or so
-   curl https://api.yourdomain.com/health/ready
+   curl -H 'Host: api.yourdomain.com' http://<server-ip>:9090/health/ready   # Traefik directly
+   curl https://api.yourdomain.com/health/ready                             # through nginx
    ```
+   If the first works and the second doesn't, the problem is in nginx: the `proxy_pass` address, or the certificate. If both fail, check the pods and the `host` in [ingress.yaml](ingress.yaml).
 
 ## GitHub tokens
 
@@ -106,8 +113,7 @@ When a token expires, Argo CD stops syncing, or new pods can't pull images. Note
   For a Postgres password, you must also change it inside the database. The image only applies `POSTGRES_PASSWORD` when the database is first created.
 - **Manual changes** to the cluster are reverted by Argo CD (`selfHeal`). Change the manifests in git instead.
 - **Logs:**
-  - `kubectl -n todo-nest logs deploy/todo-nest -f` (the API)
-  - `... -c migrate` (the migrations)
+  - `kubectl -n todo-nest logs deploy/todo-nest -f` (migrations first, then the API)
 - **Back up the database:**
   ```sh
   kubectl -n todo-nest exec postgres-0 -- sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql

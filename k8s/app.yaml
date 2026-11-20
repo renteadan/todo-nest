@@ -39,21 +39,8 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000 # the `node` user of the node images
-      initContainers:
-        # Applies pending migrations before the app starts. Concurrent runs
-        # from several pods are safe: Prisma takes an advisory lock.
-        - name: migrate
-          image: ghcr.io/renteadan/todo-nest-migrate
-          imagePullPolicy: IfNotPresent
-          envFrom:
-            - secretRef:
-                name: todo-nest-env
-          resources:
-            requests:
-              cpu: 50m
-              memory: 128Mi
-            limits:
-              memory: 512Mi
+      # The container applies pending migrations before starting the API (see
+      # the Dockerfile's CMD); the startupProbe below allows time for both.
       containers:
         - name: app
           image: ghcr.io/renteadan/todo-nest
@@ -70,7 +57,7 @@ spec:
               path: /health/live
               port: http
             periodSeconds: 2
-            failureThreshold: 30
+            failureThreshold: 90 # 3 minutes: migrations run first
           livenessProbe:
             httpGet:
               path: /health/live

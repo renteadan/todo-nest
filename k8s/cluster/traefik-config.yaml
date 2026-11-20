@@ -1,0 +1,19 @@
+# Moves k3s's bundled Traefik off ports 80/443, which nginx uses on this host.
+# k3s's ServiceLB binds the LoadBalancer ports on the node, so Traefik then
+# listens on <server>:9090 (HTTP) and <server>:9443 (HTTPS, unused here).
+#
+# Cluster-level and outside Argo CD: apply once by hand.
+#   kubectl apply -f k8s/cluster/traefik-config.yaml
+# k3s's Helm controller then redeploys Traefik with these values.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        exposedPort: 9090
+      websecure:
+        exposedPort: 9443
