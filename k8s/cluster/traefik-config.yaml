@@ -1,6 +1,7 @@
-# Moves k3s's bundled Traefik off ports 80/443, which nginx uses on this host.
-# k3s's ServiceLB binds the LoadBalancer ports on the node, so Traefik then
-# listens on <server>:9090 (HTTP) and <server>:9443 (HTTPS, unused here).
+# Moves k3s's bundled Traefik off ports 80/443, which Nginx Proxy Manager uses
+# on this host. k3s's ServiceLB binds the LoadBalancer ports on the node, so
+# Traefik then listens on <server>:10080 (HTTP) and <server>:10443 (HTTPS,
+# unused here: Nginx Proxy Manager terminates TLS).
 #
 # Cluster-level and outside Argo CD: apply once by hand.
 #   kubectl apply -f k8s/cluster/traefik-config.yaml
@@ -14,6 +15,6 @@ spec:
   valuesContent: |-
     ports:
       web:
-        exposedPort: 9090
+        exposedPort: 10080
       websecure:
-        exposedPort: 9443
+        exposedPort: 10443

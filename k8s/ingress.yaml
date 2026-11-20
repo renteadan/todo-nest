@@ -1,6 +1,6 @@
-# Plain HTTP: Traefik listens on the host's port 9090 (cluster/traefik-config.yaml),
-# and nginx in front terminates HTTPS and proxies the domain here
-# (nginx/todo-nest.conf). nginx forwards the Host header, so the rule matches.
+# Plain HTTP: Traefik listens on the host's port 10080 (cluster/traefik-config.yaml),
+# and Nginx Proxy Manager in front terminates HTTPS and proxies the domain here
+# (see README.md). It forwards the Host header, so the rule matches.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: traefik # bundled with k3s
   rules:
-    - host: api.example.com # TODO: your domain (same as server_name in nginx)
+    - host: api.renteadan.com # same as the proxy host in Nginx Proxy Manager
       http:
         paths:
           - path: /

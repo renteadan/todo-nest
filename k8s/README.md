@@ -4,9 +4,9 @@ These manifests run the API on a k3s cluster:
 
 - **Postgres** runs as a StatefulSet, with its data on the node's disk (the `local-path` storage class).
 - **The API** runs as a Deployment with 2 replicas. Each container applies pending Prisma migrations before it starts the API.
-- **nginx** on the host keeps ports 80 and 443 and terminates HTTPS, with a certbot certificate. It proxies the app's domain to **Traefik**, k3s's ingress, which listens on port 9090:
+- **Nginx Proxy Manager**, already running on the host, keeps ports 80 and 443 and terminates HTTPS with its own Let's Encrypt certificate. It proxies the app's domain to **Traefik**, k3s's ingress, which listens on port 10080:
   ```
-  client ──https:443──▶ nginx ──http:9090──▶ Traefik ──▶ todo-nest Service ──▶ pods
+  client ──https:443──▶ Nginx Proxy Manager ──http:10080──▶ Traefik ──▶ todo-nest Service ──▶ pods
   ```
 - **Argo CD** syncs this folder from `main`.
 - **Secrets** are created by hand with `kubectl` and never go into git. Argo CD doesn't manage them.
@@ -26,22 +26,21 @@ If `main` is protected by branch rules, allow GitHub Actions to push to it. Othe
 
 Run the `kubectl` commands where you have the cluster's kubeconfig.
 
-1. **DNS and domain.** Point an A record for your domain to the server's public IP. Replace `api.example.com` in [ingress.yaml](ingress.yaml) with that domain.
+1. **DNS.** Point an A record for `api.renteadan.com` to the server's public IP. The same domain is the `host` in [ingress.yaml](ingress.yaml).
 
-2. **Move Traefik to port 9090.** By default, k3s's Traefik takes ports 80 and 443, which nginx already uses.
+2. **Move Traefik to ports 10080 and 10443.** By default, k3s's Traefik takes ports 80 and 443, which Nginx Proxy Manager already uses.
    ```sh
    kubectl apply -f k8s/cluster/traefik-config.yaml
-   kubectl -n kube-system get svc traefik   # PORT(S) shows 9090 and 9443 after a few seconds
-   curl -i http://<server-ip>:9090/         # 404 from Traefik means it's listening
+   kubectl -n kube-system get svc traefik   # PORT(S) shows 10080 and 10443 after a few seconds
+   curl -i http://<server-ip>:10080/        # 404 from Traefik means it's listening
    ```
-   Port 9090 serves the app over plain HTTP. Block 9090 and 9443 from the internet on your router or provider firewall, so the only public way in is through nginx. `ufw` alone may not be enough, because k3s's port mapping goes around it.
+   Port 10080 serves the app over plain HTTP. Block 10080 and 10443 from the internet on your router or provider firewall, so the only public way in is through Nginx Proxy Manager. `ufw` alone may not be enough, because k3s's port mapping goes around it.
 
-3. **nginx and HTTPS.** [nginx/todo-nest.conf](nginx/todo-nest.conf) is the site config. Replace `api.example.com` and `<server-ip>` in it. nginx refuses to start with a certificate that doesn't exist yet, so get the certificate first:
-   1. Install only the first `server { listen 80; ... }` block as `/etc/nginx/sites-available/todo-nest`. Link it into `sites-enabled`, then run `sudo nginx -t && sudo systemctl reload nginx`.
-   2. Run `sudo certbot certonly --webroot -w /var/www/html -d api.example.com`.
-   3. Install the full file, then run `sudo nginx -t && sudo systemctl reload nginx` again.
+3. **Proxy host in Nginx Proxy Manager.** In its admin UI, go to Hosts → Proxy Hosts → Add Proxy Host:
+   - **Details:** Domain Names `api.renteadan.com`, Scheme `http`, Forward Hostname/IP `<server-ip>`, Forward Port `10080`. Turn on **Block Common Exploits**.
+   - **SSL:** Request a new SSL Certificate, and turn on **Force SSL** and **HTTP/2 Support**.
 
-   certbot's systemd timer renews the certificate. Add `--deploy-hook "systemctl reload nginx"` to the certbot command, so nginx picks up each renewed certificate.
+   Use the server's LAN IP as the forward host, not `127.0.0.1` or `localhost`: Nginx Proxy Manager runs in Docker, where those point at its own container. Nginx Proxy Manager forwards the `Host` header, which the Ingress rule matches on, and renews the certificate by itself.
 
 4. **Namespace.** Create it now, so the secrets have somewhere to go before Argo CD's first sync:
    ```sh
@@ -85,10 +84,10 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
 9. **Check.**
    ```sh
-   curl -H 'Host: api.yourdomain.com' http://<server-ip>:9090/health/ready   # Traefik directly
-   curl https://api.yourdomain.com/health/ready                             # through nginx
+   curl -H 'Host: api.renteadan.com' http://<server-ip>:10080/health/ready  # Traefik directly
+   curl https://api.renteadan.com/health/ready                             # through Nginx Proxy Manager
    ```
-   If the first works and the second doesn't, the problem is in nginx: the `proxy_pass` address, or the certificate. If both fail, check the pods and the `host` in [ingress.yaml](ingress.yaml).
+   If the first works and the second doesn't, the problem is in Nginx Proxy Manager: the forward host and port, or the certificate. If both fail, check the pods and the `host` in [ingress.yaml](ingress.yaml).
 
 ## GitHub tokens
 
