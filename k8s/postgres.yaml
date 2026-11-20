@@ -29,6 +29,13 @@ spec:
       labels:
         app: postgres
     spec:
+      # Start as the image's postgres user (uid/gid 999) instead of root, so
+      # docker-entrypoint.sh skips its gosu step: gosu 1.20 hangs at 100% CPU
+      # on this node (kernel 7.0, Ubuntu 26.04) and never execs postgres.
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
       containers:
         - name: postgres
           image: postgres:17
