@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: todo-nest
+  annotations:
+    # cert-manager requests a Let's Encrypt certificate into `todo-nest-tls`.
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik # bundled with k3s
+  tls:
+    - hosts:
+        - api.example.com # TODO: your domain
+      secretName: todo-nest-tls
+  rules:
+    - host: api.example.com # TODO: your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: todo-nest
+                port:
+                  name: http

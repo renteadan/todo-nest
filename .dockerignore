@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+*.tsbuildinfo
+src/generated
+.env
+.env.*
+.git
+.github
+.agents
+.claude
+.vscode
+.windsurf
+k8s
+Dockerfile
+.dockerignore

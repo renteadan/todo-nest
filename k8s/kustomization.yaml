@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: todo-nest
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - app.yaml
+  - ingress.yaml
+
+# Secrets come from local env files that are gitignored (copy the
+# *.env.example files). The generated names get a content hash, so changing a
+# value rolls out the pods that use it.
+secretGenerator:
+  - name: postgres-credentials
+    envs:
+      - secrets/postgres.env
+  - name: todo-nest-env
+    envs:
+      - secrets/app.env

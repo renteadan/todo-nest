@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-nest
+  labels:
+    app: todo-nest
+spec:
+  selector:
+    app: todo-nest
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-nest
+  labels:
+    app: todo-nest
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: todo-nest
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: todo-nest
+    spec:
+      # For a private GHCR package (see README). Ignored if the secret doesn't exist.
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # the `node` user of the node images
+      initContainers:
+        # Applies pending migrations before the app starts. Concurrent runs
+        # from several pods are safe: Prisma takes an advisory lock.
+        - name: migrate
+          image: ghcr.io/renteadan/todo-nest-migrate:latest
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: todo-nest-env
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      containers:
+        - name: app
+          image: ghcr.io/renteadan/todo-nest:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            # DATABASE_URL, JWT_SECRET, OBSERVE_APP_KEY, OBSERVE_APP_SECRET (secrets/app.env)
+            - secretRef:
+                name: todo-nest-env
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
