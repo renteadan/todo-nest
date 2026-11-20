@@ -9,7 +9,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { promisify } from 'node:util';
-import { type AccessTokenResult, TokenService } from '@nestjs/authentication';
+import { type TokenPair, TokenService } from '@nestjs/authentication';
 import { UsersService } from '../users/users.service.js';
 import {
   type RegisterUserDto,
@@ -44,7 +44,7 @@ export class AuthService {
     return this.toResponse(user);
   }
 
-  async login(email: string, password: string): Promise<AccessTokenResult> {
+  async login(email: string, password: string): Promise<TokenPair> {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
@@ -57,6 +57,21 @@ export class AuthService {
     }
 
     return this.tokenService.issue(String(user.id), { method: 'password' });
+  }
+
+  /** Exchanges a refresh token for a new pair; reuse revokes the whole family. */
+  refresh(refreshToken: string): Promise<TokenPair> {
+    return this.tokenService.refresh(refreshToken);
+  }
+
+  /** Signs out the device holding this refresh token (revokes its family). */
+  async logout(refreshToken: string): Promise<void> {
+    await this.tokenService.revoke(refreshToken);
+  }
+
+  /** Signs the user out of every device. Issued access tokens live until they expire. */
+  logoutAll(userId: number): Promise<void> {
+    return this.tokenService.revokeAll(String(userId));
   }
 
   private hashPassword(password: string, salt: string) {

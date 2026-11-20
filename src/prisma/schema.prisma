@@ -42,3 +42,29 @@ model User {
   updatedAt DateTime   @db.Timestamptz(3)
   TaskList  TaskList[]
 }
+
+model RefreshToken {
+  /// SHA-256 of the token, computed by @nestjs/authentication.
+  id              String    @id
+  familyId        String
+  /// The library's string user id; no foreign key (see TokenService.issue()).
+  userId          String
+  createdAt       DateTime  @db.Timestamptz(3)
+  expiresAt       DateTime  @db.Timestamptz(3)
+  familyExpiresAt DateTime  @db.Timestamptz(3)
+  usedAt          DateTime? @db.Timestamptz(3)
+  claims          Json?
+
+  @@index([familyId])
+  @@index([userId])
+  @@index([familyExpiresAt])
+}
+
+/// Kept apart from RefreshToken so a revocation also covers tokens of the
+/// family saved after it (a rotation that lost the race to a reuse).
+model RevokedRefreshTokenFamily {
+  familyId        String   @id
+  familyExpiresAt DateTime @db.Timestamptz(3)
+
+  @@index([familyExpiresAt])
+}

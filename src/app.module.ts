@@ -30,7 +30,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
           audience: 'v12',
           ttl: '15m',
         },
-        refreshToken: false,
+        refreshToken: { ttl: '30d', absoluteTtl: '90d' },
       }),
     }),
     AuthModule,

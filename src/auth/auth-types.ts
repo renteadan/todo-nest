@@ -7,6 +7,5 @@ export interface AuthUser {
 declare module '@nestjs/authentication' {
   interface AuthenticationTypes {
     user: AuthUser;
-    refreshTokens: false;
   }
 }
