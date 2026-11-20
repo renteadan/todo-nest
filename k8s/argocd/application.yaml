@@ -1,0 +1,22 @@
+# Applied once by hand (kubectl apply -f k8s/argocd/application.yaml);
+# from then on Argo CD syncs k8s/ from main.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: todo-nest
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/renteadan/todo-nest.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: todo-nest
+  syncPolicy:
+    automated:
+      prune: true # delete what's removed from git
+      selfHeal: true # undo manual changes in the cluster
+    syncOptions:
+      - CreateNamespace=true

@@ -36,7 +36,7 @@ spec:
             - name: postgres
               containerPort: 5432
           envFrom:
-            # POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB (secrets/postgres.env)
+            # POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB (Secret created by hand, see README.md)
             - secretRef:
                 name: postgres-credentials
           env:

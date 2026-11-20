@@ -9,13 +9,13 @@ resources:
   - app.yaml
   - ingress.yaml
 
-# Secrets come from local env files that are gitignored (copy the
-# *.env.example files). The generated names get a content hash, so changing a
-# value rolls out the pods that use it.
-secretGenerator:
-  - name: postgres-credentials
-    envs:
-      - secrets/postgres.env
-  - name: todo-nest-env
-    envs:
-      - secrets/app.env
+# The Secrets `postgres-credentials` and `todo-nest-env` are not in git: they
+# are created by hand with kubectl (README.md), and Argo CD leaves them alone.
+
+# Set by the "Docker images" workflow after each build on main
+# (`kustomize edit set image`): Argo CD deploys whatever tag is committed here.
+images:
+  - name: ghcr.io/renteadan/todo-nest
+    newTag: latest
+  - name: ghcr.io/renteadan/todo-nest-migrate
+    newTag: latest

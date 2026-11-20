@@ -2,8 +2,12 @@ name: Docker images
 
 on:
   push:
-    branches: [master, main]
+    branches: [main]
     tags: ["v*"]
+    # Manifest-only changes need no new images (Argo CD syncs them directly).
+    paths-ignore:
+      - "k8s/**"
+      - "**.md"
   workflow_dispatch:
 
 permissions:
@@ -49,3 +53,41 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+  # Pins the images just built in k8s/kustomization.yaml and commits it;
+  # Argo CD sees the commit and rolls out. Commits made with GITHUB_TOKEN
+  # don't trigger workflows, so this doesn't loop.
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: deploy-main
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: imranismail/setup-kustomize@v2
+
+      - name: Pin image tags
+        working-directory: k8s
+        run: |
+          tag="sha-${GITHUB_SHA::7}" # the tag docker/metadata-action's type=sha produces
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          kustomize edit set image \
+            "ghcr.io/${owner}/todo-nest=ghcr.io/${owner}/todo-nest:${tag}" \
+            "ghcr.io/${owner}/todo-nest-migrate=ghcr.io/${owner}/todo-nest-migrate:${tag}"
+
+      - name: Commit and push
+        run: |
+          git diff --quiet && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "deploy: ${GITHUB_SHA::7}"
+          # main may have moved while the images built.
+          for attempt in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1

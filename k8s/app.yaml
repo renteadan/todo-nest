@@ -43,8 +43,8 @@ spec:
         # Applies pending migrations before the app starts. Concurrent runs
         # from several pods are safe: Prisma takes an advisory lock.
         - name: migrate
-          image: ghcr.io/renteadan/todo-nest-migrate:latest
-          imagePullPolicy: Always
+          image: ghcr.io/renteadan/todo-nest-migrate
+          imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
                 name: todo-nest-env
@@ -56,13 +56,13 @@ spec:
               memory: 512Mi
       containers:
         - name: app
-          image: ghcr.io/renteadan/todo-nest:latest
-          imagePullPolicy: Always
+          image: ghcr.io/renteadan/todo-nest
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 3000
           envFrom:
-            # DATABASE_URL, JWT_SECRET, OBSERVE_APP_KEY, OBSERVE_APP_SECRET (secrets/app.env)
+            # DATABASE_URL, JWT_SECRET, OBSERVE_APP_KEY, OBSERVE_APP_SECRET (Secret created by hand, see README.md)
             - secretRef:
                 name: todo-nest-env
           startupProbe:
