@@ -17,4 +17,4 @@ resources:
 images:
 - name: ghcr.io/renteadan/todo-nest
   newName: ghcr.io/renteadan/todo-nest
-  newTag: sha-6be2a2a
+  newTag: sha-4766944
