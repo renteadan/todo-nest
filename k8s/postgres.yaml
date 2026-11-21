@@ -59,16 +59,19 @@ spec:
           # of initdb leaves a half-initialized data directory behind.
           startupProbe:
             exec:
-              command: ["sh", "-c", 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
+              command:
+                ['sh', '-c', 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
             periodSeconds: 5
             failureThreshold: 60 # 5 minutes
           readinessProbe:
             exec:
-              command: ["sh", "-c", 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
+              command:
+                ['sh', '-c', 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
             periodSeconds: 5
           livenessProbe:
             exec:
-              command: ["sh", "-c", 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
+              command:
+                ['sh', '-c', 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
             periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 4
@@ -77,6 +80,7 @@ spec:
               cpu: 100m
               memory: 256Mi
             limits:
+              cpu: 500m
               memory: 1Gi
           securityContext:
             # Same node issue as k8s/app.yaml: the containerd AppArmor profile
@@ -88,7 +92,7 @@ spec:
     - metadata:
         name: data
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes: ['ReadWriteOnce']
         # k3s ships the local-path provisioner as its default storage class:
         # the data lives on the node's disk, under /var/lib/rancher/k3s/storage.
         storageClassName: local-path
