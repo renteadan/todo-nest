@@ -5,6 +5,11 @@ metadata:
   labels:
     app: todo-nest
 spec:
+  # Pinned so Nginx Proxy Manager can forward api.renteadan.com straight to it
+  # (no ingress controller: Traefik is disabled in k3s). Must stay inside the
+  # cluster's service CIDR (10.43.0.0/16) and can't change without recreating
+  # the Service.
+  clusterIP: 10.43.115.124
   selector:
     app: todo-nest
   ports:
