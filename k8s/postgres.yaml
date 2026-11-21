@@ -78,6 +78,12 @@ spec:
               memory: 256Mi
             limits:
               memory: 1Gi
+          securityContext:
+            # Same node issue as k8s/app.yaml: the containerd AppArmor profile
+            # denies signals between processes in the container, and postgres
+            # wakes its own processes with SIGURG (dmesg showed those denied).
+            appArmorProfile:
+              type: Unconfined
   volumeClaimTemplates:
     - metadata:
         name: data

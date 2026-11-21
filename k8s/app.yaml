@@ -75,8 +75,16 @@ spec:
               cpu: 100m
               memory: 192Mi
             limits:
+              cpu: 500m
               memory: 512Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ['ALL']
+            # On this node (Ubuntu 26.04), processes in a container end up with
+            # two AppArmor labels (cri-containerd.apparmor.d and
+            # cri-containerd.apparmor.d//&unconfined), and the containerd profile
+            # denies signals between them. Prisma's migrate step then logs
+            # "kill EACCES" when it stops its schema engine.
+            appArmorProfile:
+              type: Unconfined
