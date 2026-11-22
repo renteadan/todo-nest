@@ -75,9 +75,8 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
    ```
    You can also do this in the UI: Settings → Repositories → Connect repo → HTTPS.
 
-8. **Push, then create the Application.** Push to `main` and wait for the first workflow run, which pins the image tags. Then run:
+8. **Push, then let Argo CD pick it up.** Push to `main` and wait for the first workflow run, which pins the image tags. The Application itself lives in the `docker-stacks` repo (`k8s/apps/todo-nest.yaml`), where the `root` app-of-apps creates it. Then run:
    ```sh
-   kubectl apply -f k8s/argocd/application.yaml
    argocd app get todo-nest   # or watch it in the UI
    ```
 
