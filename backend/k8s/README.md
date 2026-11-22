@@ -42,7 +42,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
 4. **Namespace.** Create it now, so the secrets have somewhere to go before Argo CD's first sync:
    ```sh
-   kubectl create namespace todo-nest
+   kubectl create namespace todo-app
    ```
 
 5. **App secrets.** Copy the examples and fill them in. The `.env` files are gitignored and never committed.
@@ -55,14 +55,14 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
    Then create the Secrets in the cluster. Keep these exact names, because the manifests refer to them.
    ```sh
-   kubectl -n todo-nest create secret generic postgres-credentials --from-env-file=k8s/secrets/postgres.env
-   kubectl -n todo-nest create secret generic todo-nest-env --from-env-file=k8s/secrets/app.env
+   kubectl -n todo-app create secret generic postgres-credentials --from-env-file=k8s/secrets/postgres.env
+   kubectl -n todo-app create secret generic todo-nest-env --from-env-file=k8s/secrets/app.env
    ```
    The cluster is now the only place these values live, apart from your local `.env` files. Keep a copy of those somewhere safe, such as a password manager.
 
 6. **GHCR pull secret.** The repo is private, so the images are private too. The token is described in [GitHub tokens](#github-tokens) below.
    ```sh
-   kubectl -n todo-nest create secret docker-registry ghcr-pull \
+   kubectl -n todo-app create secret docker-registry ghcr-pull \
      --docker-server=ghcr.io --docker-username=<github-user> --docker-password=<packages-token>
    ```
 
@@ -75,9 +75,9 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
    ```
    You can also do this in the UI: Settings → Repositories → Connect repo → HTTPS.
 
-8. **Push, then let Argo CD pick it up.** Push to `main` and wait for the first workflow run, which pins the image tags. The Application itself lives in the `docker-stacks` repo (`k8s/apps/todo-nest.yaml`), where the `root` app-of-apps creates it. Then run:
+8. **Push, then let Argo CD pick it up.** Push to `main` and wait for the first workflow run, which pins the image tags. The Application itself lives in the `docker-stacks` repo (`k8s/apps/todo-backend.yaml`), where the `root` app-of-apps creates it. Then run:
    ```sh
-   argocd app get todo-nest   # or watch it in the UI
+   argocd app get todo-backend   # or watch it in the UI
    ```
 
 9. **Check.**
@@ -85,7 +85,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
    curl http://10.43.115.124/health/ready           # the Service directly (on the node)
    curl https://api.renteadan.com/health/ready      # through Nginx Proxy Manager
    ```
-   If the first works and the second doesn't, the problem is in Nginx Proxy Manager: the forward host and port, or the certificate. If both fail, check the pods and `kubectl -n todo-nest get svc todo-nest`.
+   If the first works and the second doesn't, the problem is in Nginx Proxy Manager: the forward host and port, or the certificate. If both fail, check the pods and `kubectl -n todo-app get svc todo-nest`.
 
 ## GitHub tokens
 
@@ -103,17 +103,17 @@ When a token expires, Argo CD stops syncing, or new pods can't pull images. Note
 - **Release:** push to `main`. Everything else is automatic.
 - **Change a secret:** edit the `.env` file, then replace the Secret. `create` refuses to overwrite an existing Secret, so render it and apply it instead. Pods read env vars only at startup, so restart them afterwards:
   ```sh
-  kubectl -n todo-nest create secret generic todo-nest-env --from-env-file=k8s/secrets/app.env \
+  kubectl -n todo-app create secret generic todo-nest-env --from-env-file=k8s/secrets/app.env \
     --dry-run=client -o yaml | kubectl apply -f -
-  kubectl -n todo-nest rollout restart deploy/todo-nest
+  kubectl -n todo-app rollout restart deploy/todo-nest
   ```
   For a Postgres password, you must also change it inside the database. The image only applies `POSTGRES_PASSWORD` when the database is first created.
 - **Manual changes** to the cluster are reverted by Argo CD (`selfHeal`). Change the manifests in git instead.
 - **Logs:**
-  - `kubectl -n todo-nest logs deploy/todo-nest -f` (migrations first, then the API)
+  - `kubectl -n todo-app logs deploy/todo-nest -f` (migrations first, then the API)
 - **Back up the database:**
   ```sh
-  kubectl -n todo-nest exec postgres-0 -- sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql
+  kubectl -n todo-app exec postgres-0 -- sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql
   ```
   The data is on the node's disk under `/var/lib/rancher/k3s/storage`. Nothing backs it up for you.
 
