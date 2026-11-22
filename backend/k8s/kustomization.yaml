@@ -16,4 +16,4 @@ resources:
 images:
 - name: ghcr.io/renteadan/todo-backend
   newName: ghcr.io/renteadan/todo-backend
-  newTag: sha-9231f7b
+  newTag: sha-a90e664
