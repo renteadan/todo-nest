@@ -47,6 +47,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
 5. **App secrets.** Copy the examples and fill them in. The `.env` files are gitignored and never committed.
    ```sh
+   cd backend
    cp k8s/secrets/postgres.env.example k8s/secrets/postgres.env
    cp k8s/secrets/app.env.example k8s/secrets/app.env
    ```

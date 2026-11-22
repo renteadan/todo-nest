@@ -1,13 +1,16 @@
-name: Docker images
+name: Backend
 
 on:
   push:
     branches: [main]
     tags: ["v*"]
     # Manifest-only changes need no new images (Argo CD syncs them directly).
-    paths-ignore:
-      - "k8s/**"
-      - "**.md"
+    # Later patterns win: backend code changes trigger a build, but manifest/doc-only changes don't.
+    paths:
+      - "backend/**"
+      - "!backend/k8s/**"
+      - "!**.md"
+      - ".github/workflows/backend.yml"
   workflow_dispatch:
 
 permissions:
@@ -39,14 +42,14 @@ jobs:
 
       - uses: docker/build-push-action@v7
         with:
-          context: .
+          context: backend
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=runtime
           cache-to: type=gha,mode=max,scope=runtime
 
-  # Pins the image just built in k8s/kustomization.yaml and commits it;
+  # Pins the image just built in backend/k8s/kustomization.yaml and commits it;
   # Argo CD sees the commit and rolls out. Commits made with GITHUB_TOKEN
   # don't trigger workflows, so this doesn't loop.
   deploy:
@@ -63,7 +66,7 @@ jobs:
       - uses: imranismail/setup-kustomize@v3
 
       - name: Pin image tag
-        working-directory: k8s
+        working-directory: backend/k8s
         run: |
           tag="sha-${GITHUB_SHA::7}" # the tag docker/metadata-action's type=sha produces
           owner="${GITHUB_REPOSITORY_OWNER,,}"

@@ -1,5 +1,5 @@
-# Applied once by hand (kubectl apply -f k8s/argocd/application.yaml);
-# from then on Argo CD syncs k8s/ from main.
+# Applied once by hand (kubectl apply -f backend/k8s/argocd/application.yaml);
+# from then on Argo CD syncs backend/k8s/ from main.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://github.com/renteadan/todo-nest.git
     targetRevision: main
-    path: k8s
+    path: backend/k8s
   destination:
     server: https://kubernetes.default.svc
     namespace: todo-nest
