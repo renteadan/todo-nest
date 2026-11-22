@@ -8,7 +8,7 @@ resources:
 - postgres.yaml
 - app.yaml
 
-# The Secrets `postgres-credentials` and `todo-nest-env` are not in git: they
+# The Secrets `postgres-credentials` and `todo-backend-env` are not in git: they
 # are created by hand with kubectl (README.md), and Argo CD leaves them alone.
 
 # Set by the "Docker images" workflow after each build on main
