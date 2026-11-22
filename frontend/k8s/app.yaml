@@ -49,6 +49,9 @@ spec:
           ports:
             - name: http
               containerPort: 3000
+          env:
+            - name: BACKEND_URL # read server-side by the signup Server Action
+              value: http://todo-backend
           readinessProbe:
             httpGet:
               path: /
