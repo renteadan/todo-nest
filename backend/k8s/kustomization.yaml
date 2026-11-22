@@ -14,6 +14,6 @@ resources:
 # Set by the "Docker images" workflow after each build on main
 # (`kustomize edit set image`): Argo CD deploys whatever tag is committed here.
 images:
-- name: ghcr.io/renteadan/todo-nest
+- name: ghcr.io/renteadan/todo-backend
   newName: ghcr.io/renteadan/todo-nest
   newTag: sha-a2f7d03

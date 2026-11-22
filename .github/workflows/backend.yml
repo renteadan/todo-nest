@@ -34,7 +34,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository_owner }}/todo-nest
+          images: ghcr.io/${{ github.repository_owner }}/todo-backend
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
@@ -70,7 +70,7 @@ jobs:
         run: |
           tag="sha-${GITHUB_SHA::7}" # the tag docker/metadata-action's type=sha produces
           owner="${GITHUB_REPOSITORY_OWNER,,}"
-          kustomize edit set image "ghcr.io/${owner}/todo-nest=ghcr.io/${owner}/todo-nest:${tag}"
+          kustomize edit set image "ghcr.io/${owner}/todo-backend=ghcr.io/${owner}/todo-backend:${tag}"
 
       - name: Commit and push
         run: |

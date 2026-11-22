@@ -14,7 +14,7 @@ These manifests run the API on a k3s cluster:
 ## How a release flows
 
 1. You push to `main`.
-2. [.github/workflows/docker.yml](../.github/workflows/docker.yml) builds `ghcr.io/renteadan/todo-nest` and tags it `sha-<commit>`.
+2. [.github/workflows/backend.yml](../../.github/workflows/backend.yml) builds `ghcr.io/renteadan/todo-backend` and tags it `sha-<commit>`.
 3. The workflow's `deploy` job writes that tag into [kustomization.yaml](kustomization.yaml) (`images:`) and commits `deploy: <sha>` to `main`.
 4. Argo CD sees the commit and rolls out the new version. Each new pod applies pending migrations before it starts the API, so no new pod takes traffic before its migrations are done.
 
