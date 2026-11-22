@@ -4,9 +4,9 @@ These manifests run the API on a k3s cluster:
 
 - **Postgres** runs as a StatefulSet, with its data on the node's disk (the `local-path` storage class).
 - **The API** runs as a Deployment with 2 replicas. Each container applies pending Prisma migrations before it starts the API.
-- **Nginx Proxy Manager**, already running on the host, keeps ports 80 and 443 and terminates HTTPS with its own Let's Encrypt certificate. It proxies the app's domain straight to the `todo-nest` Service, whose cluster IP is pinned to `10.43.115.124` in [app.yaml](app.yaml). There is no ingress controller: k3s's Traefik is disabled.
+- **Nginx Proxy Manager**, already running on the host, keeps ports 80 and 443 and terminates HTTPS with its own Let's Encrypt certificate. It proxies the app's domain straight to the `todo-backend` Service, whose cluster IP is pinned to `10.43.115.124` in [app.yaml](app.yaml). There is no ingress controller: k3s's Traefik is disabled.
   ```
-  client ──https:443──▶ Nginx Proxy Manager ──http:80──▶ todo-nest Service (10.43.115.124) ──▶ pods
+  client ──https:443──▶ Nginx Proxy Manager ──http:80──▶ todo-backend Service (10.43.115.124) ──▶ pods
   ```
 - **Argo CD** syncs this folder from `main`.
 - **Secrets** are created by hand with `kubectl` and never go into git. Argo CD doesn't manage them.
@@ -85,7 +85,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
    curl http://10.43.115.124/health/ready           # the Service directly (on the node)
    curl https://api.renteadan.com/health/ready      # through Nginx Proxy Manager
    ```
-   If the first works and the second doesn't, the problem is in Nginx Proxy Manager: the forward host and port, or the certificate. If both fail, check the pods and `kubectl -n todo-app get svc todo-nest`.
+   If the first works and the second doesn't, the problem is in Nginx Proxy Manager: the forward host and port, or the certificate. If both fail, check the pods and `kubectl -n todo-app get svc todo-backend`.
 
 ## GitHub tokens
 
