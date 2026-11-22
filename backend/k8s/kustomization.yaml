@@ -15,5 +15,5 @@ resources:
 # (`kustomize edit set image`): Argo CD deploys whatever tag is committed here.
 images:
 - name: ghcr.io/renteadan/todo-backend
-  newName: ghcr.io/renteadan/todo-nest
-  newTag: sha-a2f7d03
+  newName: ghcr.io/renteadan/todo-backend
+  newTag: sha-9231f7b
