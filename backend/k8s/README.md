@@ -3,7 +3,9 @@
 These manifests run the API on a k3s cluster:
 
 - **Postgres** runs as a StatefulSet, with its data on the node's disk (the `local-path` storage class).
-- **The API** runs as a Deployment with 2 replicas. Each container applies pending Prisma migrations before it starts the API.
+- **The API** runs as a Deployment. Each container applies pending Prisma migrations before it starts the API.
+- **Redis** relays WebSocket events between API pods (socket.io's Redis adapter), so a client hears about a change whichever pod made it. It stores nothing.
+- **NetworkPolicies** let only the API pods reach Postgres and Redis. k3s enforces them with its built-in network policy controller.
 - **Caddy**, already running on the host, keeps ports 80 and 443 and terminates HTTPS with a certificate it gets and renews automatically. It proxies the app's domain straight to the `todo-backend` Service, whose cluster IP is pinned to `10.43.115.124` in [app.yaml](app.yaml). There is no ingress controller: k3s's Traefik is disabled.
   ```
   client ──https:443──▶ Caddy ──http:80──▶ todo-backend Service (10.43.115.124) ──▶ pods

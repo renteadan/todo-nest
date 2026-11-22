@@ -1,5 +1,6 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { CurrentUser, Public, type TokenPair } from '@nestjs/authentication';
+import { Can } from '@nestjs/authorization';
 import { AuthService } from './auth.service.js';
 import { type AuthUser } from './auth-types.js';
 import {
@@ -53,6 +54,7 @@ export class AuthController {
     return this.authService.logout(dto.refreshToken);
   }
 
+  @Can.Anyone()
   @Post('logout-all')
   @HttpCode(204)
   logoutAll(@CurrentUser() user: AuthUser): Promise<void> {

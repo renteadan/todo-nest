@@ -1,0 +1,83 @@
+# Pub/sub for socket.io across API pods (src/redis-io.adapter.ts). Nothing is
+# stored, so no volume: a restart only drops events sent while it is down.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999 # the image's redis user (uid 999, gid 1000)
+        runAsGroup: 1000
+      containers:
+        - name: redis
+          image: redis:8-alpine
+          # Pub/sub only: no snapshots, no append-only file.
+          args: ['--save', '', '--appendonly', 'no']
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ['redis-cli', 'ping']
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ['redis-cli', 'ping']
+            periodSeconds: 15
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ['ALL']
+---
+# No password: only the API pods can reach Redis (k3s enforces NetworkPolicy).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes: ['Ingress']
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: todo-backend
+      ports:
+        - port: 6379

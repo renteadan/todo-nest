@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TokenService } from '@nestjs/authentication';
 import { AuthService } from './auth.service.js';
-import { UsersService } from '../users/users.service.js';
+import { UserService } from '../user/user.service.js';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -10,7 +10,7 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: UsersService, useValue: {} },
+        { provide: UserService, useValue: {} },
         { provide: TokenService, useValue: {} },
       ],
     }).compile();

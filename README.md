@@ -4,7 +4,7 @@ A todo app: a NestJS API with Postgres, and a Next.js frontend. Both run on a si
 
 | Folder | What it is |
 |---|---|
-| [backend/](backend/) | NestJS API with Prisma 7 and Postgres. JWT auth (`/auth`), users (`/users`), health checks (`/health`). |
+| [backend/](backend/) | NestJS API with Prisma 7 and Postgres. JWT auth (`/auth`), users (`/user`), health checks (`/health`). |
 | [frontend/](frontend/) | Next.js 16 app with Tailwind 4. |
 | [backend/k8s/](backend/k8s/) | Manifests for Postgres and the API, and the full cluster setup guide. |
 | [frontend/k8s/](frontend/k8s/) | Manifests for the frontend. |
@@ -41,6 +41,7 @@ Everything is in the `todo-app` namespace on k3s:
 
 ```
 client ──https──▶ Caddy (on the node) ──▶ todo-backend Service  10.43.115.124 ──▶ API pods ──▶ postgres
+                                      │                                            └─▶ redis (WebSocket events between pods)
                                       └─▶ todo-frontend Service 10.43.115.125 ──▶ Next.js pods
 ```
 
@@ -48,6 +49,7 @@ client ──https──▶ Caddy (on the node) ──▶ todo-backend Service  
 - A push to `main` that changes an app's code runs its workflow ([backend.yml](.github/workflows/backend.yml), [frontend.yml](.github/workflows/frontend.yml)). It builds `ghcr.io/renteadan/todo-<app>`, tagged `sha-<commit>`. Then it commits that tag to the app's `k8s/kustomization.yaml` as `deploy: <sha>` or `deploy(frontend): <sha>`.
 - Argo CD syncs those folders and rolls out the new version. The Application definitions live in the `docker-stacks` repo. To roll back, revert the `deploy` commit.
 - The backend applies pending Prisma migrations when each pod starts.
+- Clients get live task updates over socket.io on the API's port (`/socket.io/`, WebSocket transport only). With `REDIS_URL` set, as in the cluster, events go through Redis so every API pod can deliver them. Without it, as locally, they stay in one process.
 - Secrets (`postgres-credentials`, `todo-backend-env`, `ghcr-pull`) are created by hand with `kubectl` and are never in git.
 
 The one-time setup (DNS, Caddy, secrets, GHCR and Argo CD access) and the day-to-day commands are in [backend/k8s/README.md](backend/k8s/README.md). The frontend reuses the same namespace and `ghcr-pull` secret. It needs its own Argo CD Application and its own Caddy site pointing to `10.43.115.125:80`.

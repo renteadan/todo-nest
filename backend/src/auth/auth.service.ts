@@ -10,7 +10,7 @@ import {
 } from 'node:crypto';
 import { promisify } from 'node:util';
 import { type TokenPair, TokenService } from '@nestjs/authentication';
-import { UsersService } from '../users/users.service.js';
+import { UserService } from '../user/user.service.js';
 import {
   type RegisterUserDto,
   type RegisterUserResponse,
@@ -21,20 +21,20 @@ const argon2 = promisify(argon2Callback);
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly userService: UserService,
     private readonly tokenService: TokenService,
   ) {}
 
   async register(
     createUserDto: RegisterUserDto,
   ): Promise<RegisterUserResponse> {
-    if (await this.usersService.exists(createUserDto.email)) {
+    if (await this.userService.exists(createUserDto.email)) {
       throw new BadRequestException('User with this email already exists');
     }
     const salt = randomBytes(16).toString('hex');
     const hash = await this.hashPassword(createUserDto.password, salt);
 
-    const user = await this.usersService.create({
+    const user = await this.userService.create({
       ...createUserDto,
       password: hash.toString('hex'),
       salt,
@@ -45,7 +45,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<TokenPair> {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.userService.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }

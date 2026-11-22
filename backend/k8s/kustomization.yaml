@@ -6,6 +6,7 @@ namespace: todo-app
 resources:
 - namespace.yaml
 - postgres.yaml
+- redis.yaml
 - app.yaml
 
 # The Secrets `postgres-credentials` and `todo-backend-env` are not in git: they

@@ -99,3 +99,22 @@ spec:
         resources:
           requests:
             storage: 5Gi
+---
+# Only the API pods can reach Postgres (k3s enforces NetworkPolicy).
+# `kubectl exec` (backups, psql) doesn't go through the network, so it still works.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes: ['Ingress']
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: todo-backend
+      ports:
+        - port: 5432

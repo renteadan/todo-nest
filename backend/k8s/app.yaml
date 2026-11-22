@@ -54,6 +54,10 @@ spec:
           ports:
             - name: http
               containerPort: 3000
+          env:
+            # socket.io rooms shared across pods (redis.yaml).
+            - name: REDIS_URL
+              value: redis://redis:6379
           envFrom:
             # DATABASE_URL, JWT_SECRET, OBSERVE_APP_KEY, OBSERVE_APP_SECRET (Secret created by hand, see README.md)
             - secretRef:

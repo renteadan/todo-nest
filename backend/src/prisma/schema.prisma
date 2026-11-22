@@ -12,12 +12,16 @@ model Task {
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
   description String?
   id          Int       @id @default(autoincrement())
-  taskListId  Int
+  taskListId  Int?
   title       String
   updatedAt   DateTime  @db.Timestamptz(3)
-  TaskList    TaskList  @relation(fields: [taskListId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId      Int
+  /// Deleting a list keeps its tasks, outside any list.
+  TaskList    TaskList? @relation(fields: [taskListId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  User        User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([taskListId], map: "Task_taskListId_idx_ec08b633")
+  @@index([userId])
 }
 
 model TaskList {
@@ -34,13 +38,20 @@ model TaskList {
 
 model User {
   id        Int        @id @default(autoincrement())
-	email     String     @unique
+  email     String     @unique
   name      String?
   password  String
   salt      String
-	createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  role      Role       @default(USER)
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt DateTime   @db.Timestamptz(3)
   TaskList  TaskList[]
+  Task      Task[]
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 model RefreshToken {

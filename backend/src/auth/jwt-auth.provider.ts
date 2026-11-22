@@ -4,13 +4,13 @@ import {
   JwtBearerProvider,
   type JwtClaims,
 } from '@nestjs/authentication';
-import { UsersService } from '../users/users.service.js';
+import { UserService } from '../user/user.service.js';
 import { type AuthUser } from './auth-types.js';
 
 @Injectable()
 export class JwtAuth extends JwtBearerProvider<AuthUser> {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly userService: UserService,
     registry: AuthenticationRegistry,
   ) {
     super({ realm: 'v12' });
@@ -23,7 +23,14 @@ export class JwtAuth extends JwtBearerProvider<AuthUser> {
     if (!Number.isInteger(id)) {
       return null;
     }
-    const user = await this.usersService.findOne(id);
-    return user && { id: user.id, email: user.email, name: user.name };
+    const user = await this.userService.findOne(id);
+    return (
+      user && {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      }
+    );
   }
 }

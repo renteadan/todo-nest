@@ -4,6 +4,7 @@ export const userResponseSchema = z.object({
   id: z.number().int(),
   name: z.string().nullable(),
   email: z.email(),
+  role: z.enum(['USER', 'ADMIN']),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

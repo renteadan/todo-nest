@@ -2,11 +2,15 @@ import { Module } from '@nestjs/common';
 import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { UsersModule } from './users/users.module.js';
+import { UserModule } from './user/user.module.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthenticationModule } from '@nestjs/authentication';
+import { AuthorizationModule } from '@nestjs/authorization';
 import { AuthModule } from './auth/auth.module.js';
+import { OwnerPolicy } from './auth/owner.policy.js';
 import { HealthModule } from './health/health.module.js';
+import { TasklistModule } from './tasklist/tasklist.module.js';
+import { TaskModule } from './task/task.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -22,7 +26,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       // Kubernetes probes hit these every few seconds; tracing them is noise.
       http: { ignore: [/^\/health(\/|\?|$)/] },
     }),
-    UsersModule,
+    UserModule,
     ConfigModule.forRoot({ isGlobal: true }),
     AuthenticationModule.forRootAsync({
       inject: [ConfigService],
@@ -36,8 +40,13 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         refreshToken: { ttl: '30d', absoluteTtl: '90d' },
       }),
     }),
+    // After AuthenticationModule: its guard must set request.user first.
+    // OwnerPolicy is shared by the task and tasklist modules, so it lives here.
+    AuthorizationModule.forRoot({ policies: [OwnerPolicy] }),
     AuthModule,
     HealthModule,
+    TasklistModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],
