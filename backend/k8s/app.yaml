@@ -5,7 +5,7 @@ metadata:
   labels:
     app: todo-backend
 spec:
-  # Pinned so Nginx Proxy Manager can forward api.renteadan.com straight to it
+  # Pinned so Caddy can forward api.renteadan.com straight to it
   # (no ingress controller: Traefik is disabled in k3s). Must stay inside the
   # cluster's service CIDR (10.43.0.0/16) and can't change without recreating
   # the Service.

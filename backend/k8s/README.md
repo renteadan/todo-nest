@@ -4,9 +4,9 @@ These manifests run the API on a k3s cluster:
 
 - **Postgres** runs as a StatefulSet, with its data on the node's disk (the `local-path` storage class).
 - **The API** runs as a Deployment with 2 replicas. Each container applies pending Prisma migrations before it starts the API.
-- **Nginx Proxy Manager**, already running on the host, keeps ports 80 and 443 and terminates HTTPS with its own Let's Encrypt certificate. It proxies the app's domain straight to the `todo-backend` Service, whose cluster IP is pinned to `10.43.115.124` in [app.yaml](app.yaml). There is no ingress controller: k3s's Traefik is disabled.
+- **Caddy**, already running on the host, keeps ports 80 and 443 and terminates HTTPS with a certificate it gets and renews automatically. It proxies the app's domain straight to the `todo-backend` Service, whose cluster IP is pinned to `10.43.115.124` in [app.yaml](app.yaml). There is no ingress controller: k3s's Traefik is disabled.
   ```
-  client ──https:443──▶ Nginx Proxy Manager ──http:80──▶ todo-backend Service (10.43.115.124) ──▶ pods
+  client ──https:443──▶ Caddy ──http:80──▶ todo-backend Service (10.43.115.124) ──▶ pods
   ```
 - **Argo CD** syncs this folder from `main`.
 - **Secrets** are created by hand with `kubectl` and never go into git. Argo CD doesn't manage them.
@@ -28,17 +28,19 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
 1. **DNS.** Point an A record for `api.renteadan.com` to the server's public IP.
 
-2. **Disable Traefik in k3s.** Nginx Proxy Manager owns ports 80 and 443, so k3s's bundled Traefik isn't used. Add this to `/etc/rancher/k3s/config.yaml`, then `sudo systemctl restart k3s`:
+2. **Disable Traefik in k3s.** Caddy owns ports 80 and 443, so k3s's bundled Traefik isn't used. Add this to `/etc/rancher/k3s/config.yaml`, then `sudo systemctl restart k3s`:
    ```yaml
    disable:
      - traefik
    ```
 
-3. **Proxy host in Nginx Proxy Manager.** In its admin UI, go to Hosts → Proxy Hosts → Add Proxy Host:
-   - **Details:** Domain Names `api.renteadan.com`, Scheme `http`, Forward Hostname/IP `10.43.115.124`, Forward Port `80`. Turn on **Block Common Exploits**.
-   - **SSL:** Request a new SSL Certificate, and turn on **Force SSL** and **HTTP/2 Support**.
-
-   The forward host is the Service's pinned cluster IP from [app.yaml](app.yaml). Nginx Proxy Manager runs in Docker on the k3s node, and the node routes cluster IPs to the pods, so the container can reach it. Nginx Proxy Manager renews the certificate by itself.
+3. **Site in Caddy.** Add this to the Caddyfile, then reload Caddy:
+   ```
+   api.renteadan.com {
+   	reverse_proxy 10.43.115.124:80
+   }
+   ```
+   The upstream is the Service's pinned cluster IP from [app.yaml](app.yaml). Caddy runs on the k3s node, and the node routes cluster IPs to the pods, so Caddy can reach it. Caddy gets the certificate, redirects HTTP to HTTPS and renews the certificate by itself.
 
 4. **Namespace.** Create it now, so the secrets have somewhere to go before Argo CD's first sync:
    ```sh
@@ -83,9 +85,9 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 9. **Check.**
    ```sh
    curl http://10.43.115.124/health/ready           # the Service directly (on the node)
-   curl https://api.renteadan.com/health/ready      # through Nginx Proxy Manager
+   curl https://api.renteadan.com/health/ready      # through Caddy
    ```
-   If the first works and the second doesn't, the problem is in Nginx Proxy Manager: the forward host and port, or the certificate. If both fail, check the pods and `kubectl -n todo-app get svc todo-backend`.
+   If the first works and the second doesn't, the problem is in Caddy: the upstream address, or the certificate. If both fail, check the pods and `kubectl -n todo-app get svc todo-backend`.
 
 ## GitHub tokens
 
