@@ -56,7 +56,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
    Then create the Secrets in the cluster. Keep these exact names, because the manifests refer to them.
    ```sh
    kubectl -n todo-app create secret generic postgres-credentials --from-env-file=k8s/secrets/postgres.env
-   kubectl -n todo-app create secret generic todo-nest-env --from-env-file=k8s/secrets/app.env
+   kubectl -n todo-app create secret generic todo-backend-env --from-env-file=k8s/secrets/app.env
    ```
    The cluster is now the only place these values live, apart from your local `.env` files. Keep a copy of those somewhere safe, such as a password manager.
 
@@ -103,14 +103,14 @@ When a token expires, Argo CD stops syncing, or new pods can't pull images. Note
 - **Release:** push to `main`. Everything else is automatic.
 - **Change a secret:** edit the `.env` file, then replace the Secret. `create` refuses to overwrite an existing Secret, so render it and apply it instead. Pods read env vars only at startup, so restart them afterwards:
   ```sh
-  kubectl -n todo-app create secret generic todo-nest-env --from-env-file=k8s/secrets/app.env \
+  kubectl -n todo-app create secret generic todo-backend-env --from-env-file=k8s/secrets/app.env \
     --dry-run=client -o yaml | kubectl apply -f -
-  kubectl -n todo-app rollout restart deploy/todo-nest
+  kubectl -n todo-app rollout restart deploy/todo-backend
   ```
   For a Postgres password, you must also change it inside the database. The image only applies `POSTGRES_PASSWORD` when the database is first created.
 - **Manual changes** to the cluster are reverted by Argo CD (`selfHeal`). Change the manifests in git instead.
 - **Logs:**
-  - `kubectl -n todo-app logs deploy/todo-nest -f` (migrations first, then the API)
+  - `kubectl -n todo-app logs deploy/todo-backend -f` (migrations first, then the API)
 - **Back up the database:**
   ```sh
   kubectl -n todo-app exec postgres-0 -- sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql
