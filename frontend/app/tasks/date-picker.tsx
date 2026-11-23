@@ -59,7 +59,26 @@ export function DateTimePicker({
   }, [open]);
 
   return (
-    <span ref={root} className="relative inline-flex">
+    <span
+      ref={root}
+      className="relative inline-flex"
+      onKeyDown={(e) => {
+        if (open && e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          close();
+        }
+      }}
+      // relatedTarget is null for clicks on the panel's own padding: stay open.
+      onBlur={(e) => {
+        if (
+          open &&
+          e.relatedTarget &&
+          !e.currentTarget.contains(e.relatedTarget)
+        )
+          close(false);
+      }}
+    >
       <button
         ref={trigger}
         type="button"
@@ -153,7 +172,7 @@ function Calendar({
   };
 
   const confirm = () => {
-    if (date) onChange(`${date}T${time || DEFAULT_TIME}`);
+    if (date && time) onChange(`${date}T${time}`);
   };
 
   const view = toDate(cursor);
@@ -170,19 +189,12 @@ function Calendar({
       id={id}
       role="dialog"
       aria-label={label}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          e.stopPropagation();
-          onClose();
-        }
-      }}
       className={`picker ${align === 'end' ? 'right-0' : 'left-0'}`}
     >
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => go(addMonths(cursor, -1))}
+          onClick={() => setCursor(addMonths(cursor, -1))}
           aria-label="Previous month"
           className="picker-nav"
         >
@@ -203,7 +215,7 @@ function Calendar({
         </span>
         <button
           type="button"
-          onClick={() => go(addMonths(cursor, 1))}
+          onClick={() => setCursor(addMonths(cursor, 1))}
           aria-label="Next month"
           className="picker-nav"
         >
@@ -327,9 +339,15 @@ function Calendar({
         <button
           type="button"
           onClick={confirm}
-          disabled={!date}
+          disabled={!date || !time}
           aria-label="Set date"
-          title={date ? 'Set date' : 'Pick a day first'}
+          title={
+            !date
+              ? 'Pick a day first'
+              : !time
+                ? 'Enter a full time'
+                : 'Set date'
+          }
           className="picker-ok"
         >
           <svg viewBox="0 0 16 16" aria-hidden className="size-4">

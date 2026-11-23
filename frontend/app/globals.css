@@ -166,7 +166,6 @@ textarea {
       @apply opacity-0;
     }
     .section-head:hover .icon-quiet,
-    .task-row:hover .icon-quiet,
     .icon-quiet:focus-visible {
       @apply opacity-100;
     }
@@ -175,6 +174,12 @@ textarea {
   /* Deadline picker (tasks/date-picker.tsx). */
   .picker {
     @apply absolute top-full z-30 mt-2 flex w-72 flex-col gap-3 rounded-2xl border border-line bg-surface p-3 text-base font-normal text-foreground not-italic shadow-[0_16px_40px_-16px_rgb(22_48_42/0.45)];
+  }
+
+  @media (width < 40rem) {
+    .picker {
+      @apply fixed inset-x-4 top-auto bottom-4 mt-0 w-auto;
+    }
   }
 
   .picker-nav {
