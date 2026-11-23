@@ -2,8 +2,8 @@
 
 import { refresh } from 'next/cache';
 import { unstable_rethrow } from 'next/navigation';
-import { postJson } from '../lib/backend';
-import { authFetch, requireToken } from '../lib/session';
+import { postJson } from '../../lib/backend';
+import { authFetch, requireToken } from '../../lib/session';
 
 export type CreateTaskState = { error?: string };
 

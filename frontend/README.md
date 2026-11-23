@@ -10,7 +10,7 @@ The web app for todo: Next.js 16 (App Router, Server Actions) with Tailwind 4. T
 | `/signup` | Create an account.                                                                                                                                           |
 | `/tasks`  | The app. Add tasks with details and a deadline, make lists, drag tasks between lists and the Inbox, edit inline, tick off, and show or hide completed tasks. |
 
-- **Deadlines** use a custom date picker ([app/tasks/date-picker.tsx](app/tasks/date-picker.tsx)) with a calendar, quick picks and a time field. A date is only saved when you press ✓. Times are shown in the browser's time zone and stored as UTC.
+- **Deadlines** use a custom date picker ([app/(app)/tasks/date-picker.tsx](<app/(app)/tasks/date-picker.tsx>)) with a calendar, quick picks and a time field. A date is only saved when you press ✓. Times are shown in the browser's time zone and stored as UTC.
 - **Sessions:** the access and refresh tokens are kept in httpOnly cookies. [proxy.ts](proxy.ts) guards `/tasks` and refreshes an expired access token. All API calls happen server-side, in Server Actions and server components.
 - **Live updates:** the tasks page connects to the API's socket.io endpoint from the browser and refreshes when a task changes in another tab or device.
 
