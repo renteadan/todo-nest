@@ -1,11 +1,13 @@
 @import 'tailwindcss';
 
+/* Always light: the app is used in daylight, on phones and laptops. */
 :root {
-  --background: #f1f4ef;
+  color-scheme: light;
+  --background: #f7f9f4;
   --foreground: #16302a;
-  --surface: #fbfcfa;
-  --muted: #66766e;
-  --line: #d6ddd5;
+  --surface: #ffffff;
+  --muted: #5d6e66;
+  --line: #dfe6de;
   --mark: #e3a21a;
   --danger: #b4321f;
 }
@@ -21,22 +23,20 @@
   --font-sans: var(--font-bricolage);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0e1915;
-    --foreground: #e4ece6;
-    --surface: #15241f;
-    --muted: #8fa198;
-    --line: #2a3b35;
-    --mark: #f0b53a;
-    --danger: #f07a63;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-bricolage), system-ui, sans-serif;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--mark) 35%, transparent);
+  color: var(--foreground);
+}
+
+input,
+textarea {
+  caret-color: var(--mark);
 }
 
 :focus-visible {
@@ -75,7 +75,7 @@ body {
   }
 
   .btn-delete {
-    @apply rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 dark:text-background disabled:opacity-60;
+    @apply rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 disabled:opacity-60;
   }
 
   /* Task-row delete: a soft red disc on hover, with the bin's lid lifting. */
@@ -173,25 +173,12 @@ body {
     @apply rounded-xl border border-line bg-surface transition-colors motion-reduce:transition-none;
   }
 
-  /* The inbox flips the page's scheme: it is where new work lands. */
+  /* The inbox is tinted marigold: it is where new work lands. */
   .inbox {
-    --surface: #16302a;
-    --foreground: #f1f4ef;
-    --background: #1f3d35;
-    --muted: #a5b7ae;
-    --line: #3a564d;
-    --danger: #f07a63; /* the page's red is too dark on this panel */
-    color: var(--foreground);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .inbox {
-      --surface: #1c3b32;
-      --foreground: #eef4f0;
-      --background: #23463c;
-      --muted: #9db6aa;
-      --line: #2f5246;
-    }
+    --surface: #fff8e6;
+    --background: #fdefc8;
+    --line: #f0dca6;
+    --muted: #6b5c3a;
   }
 
   /* The one loud moment: the list you are dragging a task over. */
@@ -244,5 +231,121 @@ body {
 
   .switch:checked::before {
     @apply translate-x-3;
+  }
+}
+
+/* Login and signup: brand panel beside the form (auth-shell.tsx). */
+@layer components {
+  .auth-panel {
+    background: var(--mark);
+    color: var(--foreground);
+  }
+
+  .field-label {
+    @apply flex flex-col gap-1.5 text-sm font-medium;
+  }
+
+  .field-label .field {
+    @apply py-2.5 text-base font-normal;
+  }
+
+  /* The tick demo: one row of a small list ticks itself off, on a loop. */
+  .demo-tab {
+    @apply rounded-xl bg-surface p-4 shadow-[0_12px_32px_-14px_rgb(22_48_42/0.45)];
+  }
+
+  .demo-check {
+    @apply grid size-4 shrink-0 place-items-center rounded-full border-2 border-muted text-transparent;
+  }
+
+  .demo-row[data-sync],
+  .demo-row[data-sync] .demo-check,
+  .demo-row[data-sync] .demo-text {
+    /* Longhands: Lightning CSS resets a shorthand that has no name. */
+    animation-duration: 6s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-iteration-count: infinite;
+    animation-delay: var(--delay);
+  }
+
+  .demo-row[data-sync] {
+    animation-name: demo-flash;
+  }
+
+  .demo-row[data-sync] .demo-check {
+    animation-name: demo-tick;
+  }
+
+  .demo-row[data-sync] .demo-text {
+    animation-name: demo-strike;
+  }
+
+  /* No motion: show the end state, ticked. */
+  @media (prefers-reduced-motion: reduce) {
+    .demo-row[data-sync],
+    .demo-row[data-sync] .demo-check,
+    .demo-row[data-sync] .demo-text {
+      animation: none;
+    }
+    .demo-row[data-sync] .demo-check {
+      @apply border-mark bg-mark text-surface;
+    }
+    .demo-row[data-sync] .demo-text {
+      @apply text-muted line-through;
+    }
+  }
+}
+
+/* Open until 20%, ticked until 85%, then reset for the next loop. */
+@keyframes demo-tick {
+  0%,
+  20% {
+    border-color: var(--muted);
+    background: transparent;
+    color: transparent;
+  }
+  24%,
+  85% {
+    border-color: var(--mark);
+    background: var(--mark);
+    color: var(--surface);
+  }
+  92%,
+  100% {
+    border-color: var(--muted);
+    background: transparent;
+    color: transparent;
+  }
+}
+
+@keyframes demo-strike {
+  0%,
+  20% {
+    color: var(--foreground);
+    text-decoration-color: transparent;
+  }
+  24%,
+  85% {
+    color: var(--muted);
+    text-decoration-color: currentColor;
+  }
+  92%,
+  100% {
+    color: var(--foreground);
+    text-decoration-color: transparent;
+  }
+}
+
+@keyframes demo-flash {
+  0%,
+  20% {
+    background: transparent;
+  }
+  24% {
+    background: color-mix(in srgb, var(--mark) 24%, transparent);
+  }
+  50%,
+  100% {
+    background: transparent;
   }
 }

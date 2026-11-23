@@ -30,5 +30,5 @@ export async function logout() {
   if (refreshToken) await postJson('/auth/logout', { refreshToken });
   jar.delete('access_token');
   jar.delete('refresh_token');
-  redirect('/login');
+  redirect('/');
 }

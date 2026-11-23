@@ -21,7 +21,7 @@ export function ActionErrors() {
   return (
     <div
       role="alert"
-      className="fixed inset-x-4 bottom-4 z-10 mx-auto flex w-fit max-w-md items-center gap-3 rounded-lg bg-danger px-4 py-2 text-sm text-white shadow-lg dark:text-background empty:hidden"
+      className="fixed inset-x-4 bottom-4 z-10 mx-auto flex w-fit max-w-md items-center gap-3 rounded-lg bg-danger px-4 py-2 text-sm text-white shadow-lg empty:hidden"
     >
       {error && (
         <>
