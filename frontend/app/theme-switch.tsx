@@ -7,11 +7,9 @@ const systemTheme = () => (matchMedia(dark).matches ? 'dark' : 'light');
  * Pins light or dark over the system theme. Picking the theme the system
  * already shows drops the pin, so the app follows the system again.
  */
-export function ThemeSwitch({
-  className = 'menu-item cursor-pointer select-none',
-}) {
+export function ThemeSwitch() {
   return (
-    <label className={className}>
+    <label className="switch-label">
       Dark mode
       <input
         type="checkbox"

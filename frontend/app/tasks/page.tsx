@@ -68,28 +68,29 @@ function Navbar() {
         <Link href="/tasks" className="display text-2xl">
           Todo
         </Link>
-        <button
-          type="button"
-          popoverTarget="profile-menu"
-          aria-label="Account"
-          className="profile-btn"
-        >
-          <svg
-            viewBox="0 0 20 20"
-            aria-hidden
-            className="size-5"
-            fill="currentColor"
-          >
-            <circle cx="10" cy="7" r="3.5" />
-            <path d="M3.5 17a6.5 6.5 0 0 1 13 0z" />
-          </svg>
-        </button>
-        <div id="profile-menu" popover="auto" className="menu">
+        <div className="flex items-center gap-5">
           <ThemeSwitch />
-          <hr className="my-1 border-line" />
-          <form action={logout}>
-            <button className="menu-item">Log out</button>
-          </form>
+          <button
+            type="button"
+            popoverTarget="profile-menu"
+            aria-label="Account"
+            className="profile-btn"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              aria-hidden
+              className="size-5"
+              fill="currentColor"
+            >
+              <circle cx="10" cy="7" r="3.5" />
+              <path d="M3.5 17a6.5 6.5 0 0 1 13 0z" />
+            </svg>
+          </button>
+          <div id="profile-menu" popover="auto" className="menu">
+            <form action={logout}>
+              <button className="menu-item">Log out</button>
+            </form>
+          </div>
         </div>
       </div>
     </nav>

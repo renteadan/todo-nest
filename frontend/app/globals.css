@@ -346,7 +346,7 @@ textarea {
 
   /* A popover, so Esc and clicking outside close it with no JS. */
   .menu {
-    @apply w-56 rounded-xl border border-line bg-surface p-1.5 text-foreground shadow-[0_16px_40px_-16px_rgb(22_48_42/0.45)];
+    @apply w-44 rounded-xl border border-line bg-surface p-1.5 text-foreground shadow-[0_16px_40px_-16px_rgb(22_48_42/0.45)];
     position-anchor: --profile;
     inset: auto;
     top: anchor(bottom);

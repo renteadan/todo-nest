@@ -21,7 +21,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       </section>
       <div className="relative flex items-start justify-center px-6 py-10 sm:py-16 lg:items-center">
         <div className="absolute top-4 right-6 lg:top-6">
-          <ThemeSwitch className="switch-label" />
+          <ThemeSwitch />
         </div>
         <div className="w-full max-w-sm">{children}</div>
       </div>
