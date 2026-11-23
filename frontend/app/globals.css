@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
-/* Always light: the app is used in daylight, on phones and laptops. */
+/* Follows the system theme. */
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --background: #f7f9f4;
   --foreground: #16302a;
   --surface: #ffffff;
@@ -10,6 +10,20 @@
   --line: #dfe6de;
   --mark: #e3a21a;
   --danger: #b4321f;
+  /* Text on marigold stays dark in both themes. */
+  --on-mark: #16302a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0e1613;
+    --foreground: #e4ece6;
+    --surface: #16211d;
+    --muted: #93a69c;
+    --line: #2a3832;
+    --mark: #f0b232;
+    --danger: #e0553e;
+  }
 }
 
 @theme inline {
@@ -215,7 +229,7 @@ textarea {
   }
 
   .picker-ok {
-    @apply grid size-9 place-items-center rounded-full bg-mark text-foreground transition hover:brightness-105 active:scale-90 disabled:opacity-40 motion-reduce:transition-none;
+    @apply grid size-9 place-items-center rounded-full bg-mark text-(--on-mark) transition hover:brightness-105 active:scale-90 disabled:opacity-40 motion-reduce:transition-none;
   }
 
   .section {
@@ -230,15 +244,64 @@ textarea {
     --muted: #6b5c3a;
   }
 
+  @media (prefers-color-scheme: dark) {
+    .inbox {
+      --surface: #241f12;
+      --background: #1c180d;
+      --line: #463b1f;
+      --muted: #bfae88;
+    }
+  }
+
   /* The one loud moment: the list you are dragging a task over. */
+  .drop-zone {
+    transition:
+      border-color 180ms ease-out,
+      background-color 180ms ease-out,
+      box-shadow 180ms ease-out,
+      opacity 180ms ease-out;
+  }
+
   .drop-zone[data-over] {
     border-color: var(--mark);
     background: color-mix(in srgb, var(--mark) 12%, var(--surface));
-    box-shadow: 0 0 0 2px var(--mark);
+    box-shadow:
+      0 0 0 2px var(--mark),
+      0 12px 32px -18px var(--mark);
   }
 
   .drop-zone[aria-busy='true'] {
     @apply opacity-70;
+  }
+
+  /* Drag image: the row is styled as a lifted card only while the browser
+     snapshots it (tasklist-forms.tsx). */
+  .task-row[data-lifting] {
+    @apply bg-surface ring-1 ring-mark;
+  }
+
+  /* What stays behind while dragging: an empty dashed slot. */
+  .task-row[data-dragging] {
+    @apply outline-2 -outline-offset-2 outline-line outline-dashed;
+    background: color-mix(in srgb, var(--line) 30%, transparent);
+  }
+
+  .task-row[data-dragging] > * {
+    @apply opacity-0;
+  }
+
+  /* A task just dropped into this list settles in with a marigold flash. */
+  .task-row[data-landed] {
+    animation: task-land 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .drop-zone {
+      transition: none;
+    }
+    .task-row[data-landed] {
+      animation: none;
+    }
   }
 
   .section-head {
@@ -285,7 +348,14 @@ textarea {
 
 /* Login and signup: brand panel beside the form (auth-shell.tsx). */
 @layer components {
+  /* The marigold panel and its demo card stay light in both themes. */
   .auth-panel {
+    color-scheme: light;
+    --foreground: var(--on-mark);
+    --surface: #ffffff;
+    --muted: #5d6e66;
+    --line: #dfe6de;
+    --mark: #e3a21a;
     background: var(--mark);
     color: var(--foreground);
   }
@@ -342,6 +412,22 @@ textarea {
     .demo-row[data-sync] .demo-text {
       @apply text-muted line-through;
     }
+  }
+}
+
+@keyframes task-land {
+  from {
+    transform: translateY(-6px) scale(0.98);
+    opacity: 0;
+    background: color-mix(in srgb, var(--mark) 30%, transparent);
+  }
+  40% {
+    transform: none;
+    opacity: 1;
+    background: color-mix(in srgb, var(--mark) 22%, transparent);
+  }
+  to {
+    background: transparent;
   }
 }
 

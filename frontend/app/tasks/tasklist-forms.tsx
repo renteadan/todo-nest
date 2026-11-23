@@ -1,11 +1,13 @@
 'use client';
 
-import { useActionState, useState, useTransition } from 'react';
+import { useActionState, useEffect, useState, useTransition } from 'react';
 import { reportError } from './action-error';
 import { createTasklist, moveTask, setCompleted } from './actions';
 import { LimitedInput } from './limited-input';
 
 const TASK_MIME = 'application/x-task';
+/** Set on drop, consumed when the moved row mounts in its new list. */
+let landedTaskId: number | null = null;
 
 export function CreateTasklistForm() {
   const [state, action, pending] = useActionState(createTasklist, {});
@@ -47,6 +49,11 @@ export function DraggableTask({
   children: React.ReactNode;
 }) {
   const [dragging, setDragging] = useState(false);
+  // Read once on mount: the row a drop just moved here gets a landing animation.
+  const [landed] = useState(() => landedTaskId === taskId);
+  useEffect(() => {
+    if (landed) landedTaskId = null;
+  }, [landed]);
   return (
     <li
       draggable
@@ -64,11 +71,21 @@ export function DraggableTask({
           JSON.stringify({ taskId, fromListId }),
         );
         e.dataTransfer.effectAllowed = 'move';
-        setDragging(true);
+        // The browser snapshots the drag image right after this handler, so
+        // the lifted-card look is set on the DOM now and swapped next frame
+        // for the empty slot left behind.
+        const row = e.currentTarget;
+        row.dataset.lifting = '';
+        requestAnimationFrame(() => {
+          delete row.dataset.lifting;
+          setDragging(true);
+        });
       }}
       onDragEnd={() => setDragging(false)}
       data-done={done || undefined}
-      className={`task-row ${dragging ? 'opacity-40' : ''}`}
+      data-dragging={dragging || undefined}
+      data-landed={landed || undefined}
+      className="task-row"
     >
       {children}
     </li>
@@ -108,6 +125,7 @@ export function DropZone({
         const { taskId, fromListId } = JSON.parse(
           e.dataTransfer.getData(TASK_MIME),
         ) as { taskId: number; fromListId: number | null };
+        if (fromListId !== listId) landedTaskId = taskId;
         startTransition(async () =>
           reportError(await moveTask(taskId, fromListId, listId)),
         );
