@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,7 +10,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { type AuthUser } from '../auth/auth-types.js';
 import { OwnerPolicy } from '../auth/owner.policy.js';
 import { TaskService } from '../task/task.service.js';
-import { TasklistService } from './tasklist.service.js';
+import { MAX_TASKS_PER_LIST, TasklistService } from './tasklist.service.js';
 import { TaskGateway } from '../task/task.gateway.js';
 
 const owner: AuthUser = { id: 1, email: 'o@x.io', name: null, role: 'USER' };
@@ -43,6 +44,7 @@ describe('TasklistService', () => {
       create: vi.fn(({ data }) => Promise.resolve({ id: 12, ...data })),
     },
     task: {
+      count: vi.fn().mockResolvedValue(0),
       findUnique: vi.fn(({ where }) =>
         Promise.resolve(tasks[where.id] ?? null),
       ),
@@ -51,6 +53,11 @@ describe('TasklistService', () => {
       ),
     },
   };
+  // The transaction runs on the same mock; FOR UPDATE is a no-op here.
+  Object.assign(prisma, {
+    $queryRaw: vi.fn(),
+    $transaction: vi.fn((fn: (tx: typeof prisma) => unknown) => fn(prisma)),
+  });
   const gateway = { tasklistUpdated: vi.fn(), tasklistDeleted: vi.fn() };
   let service: TasklistService;
 
@@ -155,5 +162,26 @@ describe('TasklistService', () => {
   it('pushes nothing when the change is refused', async () => {
     await expect(service.addTask(10, 20, admin)).rejects.toThrow();
     expect(gateway.tasklistUpdated).not.toHaveBeenCalled();
+  });
+
+  it(`refuses a task when the list already has ${MAX_TASKS_PER_LIST}, done or not`, async () => {
+    prisma.task.count.mockResolvedValueOnce(MAX_TASKS_PER_LIST);
+    await expect(service.addTask(10, 20, owner)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(prisma.task.count).toHaveBeenCalledWith({
+      where: { taskListId: 10 },
+    });
+    expect(prisma.task.update).not.toHaveBeenCalled();
+    expect(gateway.tasklistUpdated).not.toHaveBeenCalled();
+  });
+
+  it('still accepts a task that is already in the full list', async () => {
+    prisma.task.count.mockResolvedValue(MAX_TASKS_PER_LIST);
+    await expect(service.addTask(10, 21, owner)).resolves.toMatchObject({
+      id: 21,
+      taskListId: 10,
+    });
+    prisma.task.count.mockResolvedValue(0);
   });
 });

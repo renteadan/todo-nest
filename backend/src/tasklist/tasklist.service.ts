@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -12,6 +13,9 @@ import { TaskService } from '../task/task.service.js';
 import { TaskGateway } from '../task/task.gateway.js';
 import { type CreateTasklistDto } from './dto/create-tasklist.dto.js';
 import { type UpdateTasklistDto } from './dto/update-tasklist.dto.js';
+
+/** Completed tasks count too. */
+export const MAX_TASKS_PER_LIST = 50;
 
 @Injectable()
 export class TasklistService {
@@ -94,7 +98,23 @@ export class TasklistService {
         'The task and the list have different owners',
       );
     }
-    const moved = await this.moveTask(taskId, id);
+    const moved = await this.prisma.$transaction(async (tx) => {
+      // Locks the list row, so two concurrent adds can't both pass the count.
+      await tx.$queryRaw`SELECT 1 FROM "TaskList" WHERE id = ${id} FOR UPDATE`;
+      if (
+        task.taskListId !== id &&
+        (await tx.task.count({ where: { taskListId: id } })) >=
+          MAX_TASKS_PER_LIST
+      ) {
+        throw new ConflictException(
+          `Task list ${id} already has ${MAX_TASKS_PER_LIST} tasks`,
+        );
+      }
+      return tx.task.update({
+        where: { id: taskId },
+        data: { taskListId: id, updatedAt: new Date() },
+      });
+    });
     await this.gateway.tasklistUpdated(id);
     // The list it came from changed too.
     if (task.taskListId !== null && task.taskListId !== id) {
@@ -109,15 +129,11 @@ export class TasklistService {
     if (task.taskListId !== id) {
       throw new NotFoundException(`Task ${taskId} is not in task list ${id}`);
     }
-    const moved = await this.moveTask(taskId, null);
+    const moved = await this.prisma.task.update({
+      where: { id: taskId },
+      data: { taskListId: null, updatedAt: new Date() },
+    });
     await this.gateway.tasklistUpdated(id);
     return moved;
-  }
-
-  private moveTask(taskId: number, taskListId: number | null) {
-    return this.prisma.task.update({
-      where: { id: taskId },
-      data: { taskListId, updatedAt: new Date() },
-    });
   }
 }
