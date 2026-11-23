@@ -1,7 +1,5 @@
-import Link from 'next/link';
 import { cache, Suspense } from 'react';
-import { logout } from '../login/actions';
-import { ThemeSwitch } from '../theme-switch';
+import { Navbar } from '../navbar';
 import { authFetch, currentUserId } from '../lib/session';
 import { ActionErrors } from './action-error';
 import {
@@ -58,42 +56,6 @@ export default function TasksPage() {
         <ActionErrors />
       </main>
     </>
-  );
-}
-
-function Navbar() {
-  return (
-    <nav className="navbar">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-2.5">
-        <Link href="/tasks" className="display text-2xl">
-          Todo
-        </Link>
-        <div className="flex items-center gap-5">
-          <ThemeSwitch />
-          <button
-            type="button"
-            popoverTarget="profile-menu"
-            aria-label="Account"
-            className="profile-btn"
-          >
-            <svg
-              viewBox="0 0 20 20"
-              aria-hidden
-              className="size-5"
-              fill="currentColor"
-            >
-              <circle cx="10" cy="7" r="3.5" />
-              <path d="M3.5 17a6.5 6.5 0 0 1 13 0z" />
-            </svg>
-          </button>
-          <div id="profile-menu" popover="auto" className="menu">
-            <form action={logout}>
-              <button className="menu-item">Log out</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </nav>
   );
 }
 

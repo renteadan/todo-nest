@@ -387,6 +387,31 @@ textarea {
   }
 }
 
+/* Admin page (admin/page.tsx). */
+@layer components {
+  .user-link {
+    @apply flex flex-col rounded-lg px-3 py-2 hover:bg-line/40 transition-colors motion-reduce:transition-none;
+  }
+
+  /* The picked user: a marigold edge, like the mark on today's date. */
+  .user-link[aria-current='page'] {
+    @apply bg-line/40;
+    box-shadow: inset 3px 0 0 var(--mark);
+  }
+
+  .admin-table {
+    @apply w-full text-left text-sm;
+  }
+
+  .admin-table th {
+    @apply px-3 py-2 font-medium text-muted;
+  }
+
+  .admin-table td {
+    @apply border-t border-line px-3 py-2.5 align-top;
+  }
+}
+
 /* Login and signup: brand panel beside the form (auth-shell.tsx). */
 @layer components {
   /* The marigold panel and its demo card stay light in both themes. */
