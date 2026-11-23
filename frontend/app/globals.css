@@ -1,29 +1,25 @@
 @import 'tailwindcss';
 
-/* Follows the system theme. */
+/* Follows the system theme; the navbar switch pins one (theme-switch.tsx). */
 :root {
   color-scheme: light dark;
-  --background: #f7f9f4;
-  --foreground: #16302a;
-  --surface: #ffffff;
-  --muted: #5d6e66;
-  --line: #dfe6de;
-  --mark: #e3a21a;
-  --danger: #b4321f;
+  --background: light-dark(#f7f9f4, #0e1613);
+  --foreground: light-dark(#16302a, #e4ece6);
+  --surface: light-dark(#ffffff, #16211d);
+  --muted: light-dark(#5d6e66, #93a69c);
+  --line: light-dark(#dfe6de, #2a3832);
+  --mark: light-dark(#e3a21a, #f0b232);
+  --danger: light-dark(#b4321f, #e0553e);
   /* Text on marigold stays dark in both themes. */
   --on-mark: #16302a;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0e1613;
-    --foreground: #e4ece6;
-    --surface: #16211d;
-    --muted: #93a69c;
-    --line: #2a3832;
-    --mark: #f0b232;
-    --danger: #e0553e;
-  }
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -238,19 +234,10 @@ textarea {
 
   /* The inbox is tinted marigold: it is where new work lands. */
   .inbox {
-    --surface: #fff8e6;
-    --background: #fdefc8;
-    --line: #f0dca6;
-    --muted: #6b5c3a;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .inbox {
-      --surface: #241f12;
-      --background: #1c180d;
-      --line: #463b1f;
-      --muted: #bfae88;
-    }
+    --surface: light-dark(#fff8e6, #241f12);
+    --background: light-dark(#fdefc8, #1c180d);
+    --line: light-dark(#f0dca6, #463b1f);
+    --muted: light-dark(#6b5c3a, #bfae88);
   }
 
   /* The one loud moment: the list you are dragging a task over. */
@@ -346,11 +333,39 @@ textarea {
   }
 }
 
+/* Top bar of the tasks page, with the profile menu (tasks/page.tsx). */
+@layer components {
+  .navbar {
+    @apply sticky top-0 z-20 border-b border-line bg-background/85 backdrop-blur;
+  }
+
+  .profile-btn {
+    @apply grid size-9 place-items-center rounded-full border border-line bg-surface text-muted hover:text-foreground;
+    anchor-name: --profile;
+  }
+
+  /* A popover, so Esc and clicking outside close it with no JS. */
+  .menu {
+    @apply w-56 rounded-xl border border-line bg-surface p-1.5 text-foreground shadow-[0_16px_40px_-16px_rgb(22_48_42/0.45)];
+    position-anchor: --profile;
+    inset: auto;
+    top: anchor(bottom);
+    right: anchor(right);
+    margin: 0.5rem 0 0;
+  }
+
+  .menu-item {
+    @apply flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-line/40;
+  }
+}
+
 /* Login and signup: brand panel beside the form (auth-shell.tsx). */
 @layer components {
   /* The marigold panel and its demo card stay light in both themes. */
   .auth-panel {
     color-scheme: light;
+    /* Literal values: Lightning CSS compiles light-dark() so it resolves on
+       :root, so color-scheme here alone would not switch them. */
     --foreground: var(--on-mark);
     --surface: #ffffff;
     --muted: #5d6e66;

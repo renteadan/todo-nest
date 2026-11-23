@@ -14,9 +14,20 @@ export const metadata: Metadata = {
   description: 'A simple todo app',
 };
 
+// Applies the theme pinned by the navbar switch (theme-switch.tsx) before first paint.
+const themeScript = `try{var t=localStorage.theme;if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${bricolage.variable} h-full antialiased`}>
+    // The script sets data-theme on <html> before React hydrates.
+    <html
+      lang="en"
+      className={`${bricolage.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

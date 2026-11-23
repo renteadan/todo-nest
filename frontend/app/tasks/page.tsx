@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { cache, Suspense } from 'react';
 import { logout } from '../login/actions';
+import { ThemeSwitch } from '../theme-switch';
 import { authFetch, currentUserId } from '../lib/session';
 import { ActionErrors } from './action-error';
 import {
@@ -38,28 +40,59 @@ type Tasklist = { id: number; title: string; userId: number };
 export default function TasksPage() {
   const loading = <p className="text-muted">Loading…</p>;
   return (
-    <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-12 sm:py-16 lg:grid-cols-2 lg:gap-x-10">
-      <header className="flex items-end justify-between gap-4 lg:col-span-2">
-        <h1 className="display text-5xl sm:text-6xl">Tasks</h1>
-        <form action={logout}>
-          <button className="text-sm text-muted underline-offset-4 hover:underline">
-            Log out
-          </button>
-        </form>
-      </header>
-      <div className="flex min-w-0 flex-col gap-6">
-        <CreateTaskForm />
-        {/* Reads the session cookie, so it streams in at request time. */}
+    <>
+      <Navbar />
+      <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-10 sm:py-12 lg:grid-cols-2 lg:gap-x-10">
+        <h1 className="display text-5xl sm:text-6xl lg:col-span-2">Tasks</h1>
+        <div className="flex min-w-0 flex-col gap-6">
+          <CreateTaskForm />
+          {/* Reads the session cookie, so it streams in at request time. */}
+          <Suspense fallback={loading}>
+            <Inbox />
+          </Suspense>
+          <CreateTasklistForm />
+        </div>
         <Suspense fallback={loading}>
-          <Inbox />
+          <Lists />
         </Suspense>
-        <CreateTasklistForm />
+        <ActionErrors />
+      </main>
+    </>
+  );
+}
+
+function Navbar() {
+  return (
+    <nav className="navbar">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-2.5">
+        <Link href="/tasks" className="display text-2xl">
+          Todo
+        </Link>
+        <button
+          type="button"
+          popoverTarget="profile-menu"
+          aria-label="Account"
+          className="profile-btn"
+        >
+          <svg
+            viewBox="0 0 20 20"
+            aria-hidden
+            className="size-5"
+            fill="currentColor"
+          >
+            <circle cx="10" cy="7" r="3.5" />
+            <path d="M3.5 17a6.5 6.5 0 0 1 13 0z" />
+          </svg>
+        </button>
+        <div id="profile-menu" popover="auto" className="menu">
+          <ThemeSwitch />
+          <hr className="my-1 border-line" />
+          <form action={logout}>
+            <button className="menu-item">Log out</button>
+          </form>
+        </div>
       </div>
-      <Suspense fallback={loading}>
-        <Lists />
-      </Suspense>
-      <ActionErrors />
-    </main>
+    </nav>
   );
 }
 
