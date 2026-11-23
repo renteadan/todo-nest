@@ -10,6 +10,7 @@ Users sign up, make task lists and add tasks with optional details and a deadlin
 | [frontend/](frontend/) | Next.js 16 app with Tailwind 4. Login, signup and the tasks page. |
 | [backend/k8s/](backend/k8s/) | Manifests for Postgres, Redis and the API, and the full cluster setup guide. |
 | [frontend/k8s/](frontend/k8s/) | Manifests for the frontend. |
+| [e2e/](e2e/) | Playwright browser tests against the whole stack. |
 | [.github/workflows/](.github/workflows/) | CI on pull requests, and one image build per app on `main`. |
 | [docker-compose.yml](docker-compose.yml) | The whole stack locally. |
 
@@ -55,7 +56,7 @@ The two apps default to the same port, so give the API another one (`PORT` in `b
 
 ## Checks
 
-Pull requests run [ci.yml](.github/workflows/ci.yml). It runs Prettier, lint, the unit tests and both builds. `main` is protected: changes go in through pull requests with passing checks, and nothing pushes to it directly.
+Pull requests run [ci.yml](.github/workflows/ci.yml). It runs Prettier, lint, the unit tests and both builds, then starts the stack with Docker Compose and runs the browser tests. `main` is protected: changes go in through pull requests with passing checks, and nothing pushes to it directly.
 
 Locally, run `npm run format:check`, `npm run lint`, `npm test` and `npm run build` in each app. The backend also has `npm run test:e2e`.
 
@@ -78,3 +79,19 @@ client ──https──▶ Caddy (on the node) ──▶ todo-backend Service  
 - Secrets (`postgres-credentials`, `todo-backend-env`, `ghcr-pull`) are created by hand with `kubectl` and are never in git.
 
 The one-time setup (DNS, Caddy, secrets, GHCR and Argo CD access) and the day-to-day commands are in [backend/k8s/README.md](backend/k8s/README.md). The frontend reuses the same namespace and `ghcr-pull` secret. It has its own Argo CD Application and its own Caddy site pointing to `10.43.115.125:80`.
+
+### Browser tests
+
+[e2e/](e2e/) holds Playwright tests for what a user does in the browser: signing up and in, the dark mode switch, creating and dragging tasks, the admin page, and touch targets on a phone-sized screen. They run against the Docker Compose stack, so start it first:
+
+```sh
+docker compose up --watch          # in one terminal
+cd e2e
+npm install
+npx playwright install chromium    # once
+npm test                           # or `npx playwright test --ui` to watch them run
+```
+
+- Each test signs up its own users through the API, so the tests don't depend on each other or on existing data. Their emails start with `e2e-`, which makes them easy to spot in a dev database.
+- The admin tests make a user an admin by updating the Compose Postgres directly (`docker compose exec postgres psql`), since there is no API for it.
+- `BASE_URL` and `API_URL` point the tests at another frontend and API (defaults: `http://localhost:3000` and `http://localhost:3001`).
