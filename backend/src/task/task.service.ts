@@ -15,10 +15,12 @@ export class TaskService {
     private readonly gateway: TaskGateway,
   ) {}
 
-  create(createTaskDto: CreateTaskDto, user: AuthUser) {
-    return this.prisma.task.create({
+  async create(createTaskDto: CreateTaskDto, user: AuthUser) {
+    const task = await this.prisma.task.create({
       data: { ...createTaskDto, userId: user.id, updatedAt: new Date() },
     });
+    await this.gateway.taskChanged('task.created', task);
+    return task;
   }
 
   async findAll(user: AuthUser) {
@@ -41,36 +43,32 @@ export class TaskService {
     return task;
   }
 
-  async update(id: number, updateTaskDto: UpdateTaskDto, user: AuthUser) {
-    await this.findOne(id, user);
-    return this.prisma.task.update({
+  /** `completed: true` stamps completedAt with the server's time, keeping an earlier one; false clears it. */
+  async update(
+    id: number,
+    { completed, ...fields }: UpdateTaskDto,
+    user: AuthUser,
+  ) {
+    const existing = await this.findOne(id, user);
+    const now = new Date();
+    const task = await this.prisma.task.update({
       where: { id },
-      data: { ...updateTaskDto, updatedAt: new Date() },
+      data: {
+        ...fields,
+        ...(completed !== undefined && {
+          completedAt: completed ? (existing.completedAt ?? now) : null,
+        }),
+        updatedAt: now,
+      },
     });
-  }
-
-  /** Idempotent: completing a done task keeps its original completion time. */
-  async complete(id: number, user: AuthUser) {
-    const task = await this.findOne(id, user);
-    return task.completedAt ? task : this.setCompletedAt(id, new Date());
-  }
-
-  async uncomplete(id: number, user: AuthUser) {
-    const task = await this.findOne(id, user);
-    return task.completedAt ? this.setCompletedAt(id, null) : task;
+    await this.gateway.taskChanged('task.updated', task);
+    return task;
   }
 
   async remove(id: number, user: AuthUser) {
     await this.findOne(id, user);
-    return this.prisma.task.delete({ where: { id } });
-  }
-
-  private async setCompletedAt(id: number, completedAt: Date | null) {
-    const task = await this.prisma.task.update({
-      where: { id },
-      data: { completedAt, updatedAt: new Date() },
-    });
-    await this.gateway.taskStatusChanged(task);
+    const task = await this.prisma.task.delete({ where: { id } });
+    await this.gateway.taskChanged('task.deleted', task);
     return task;
   }
 }

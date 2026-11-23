@@ -12,12 +12,15 @@ import { type Task } from '../generated/prisma/client.js';
 
 const userRoom = (userId: number) => `user:${userId}`;
 
+type TaskEvent = 'task.created' | 'task.updated' | 'task.deleted';
+
 /**
  * Server-to-client events only. Clients connect to the API's own port
  * (socket.io, path /socket.io/) with
  * `io(url, { auth: { token: accessToken }, transports: ['websocket'] })`
  * and listen for:
- * - `task.status`: the task, when it is completed or reopened.
+ * - `task.created`, `task.updated` (completing or reopening included),
+ *   `task.deleted`: the task.
  * - `tasklist.updated`: the list with its tasks, when it is created, renamed,
  *   or a task moves into or out of it.
  * - `tasklist.deleted`: `{ id }`; the list's tasks are now in no list.
@@ -56,17 +59,17 @@ export class TaskGateway implements OnGatewayConnection {
    * Tells every user with access to the task's list (the task's owner when
    * it is in no list). Never throws: the change is already saved.
    */
-  async taskStatusChanged(task: Task) {
+  async taskChanged(event: TaskEvent, task: Task) {
     try {
       const userIds =
         task.taskListId === null
           ? [task.userId]
           : await this.listUserIds(task.taskListId);
       if (userIds.length > 0) {
-        this.server.to(userIds.map(userRoom)).emit('task.status', task);
+        this.server.to(userIds.map(userRoom)).emit(event, task);
       }
     } catch (error) {
-      this.logger.error(`task.status for task ${task.id} not sent`, error);
+      this.logger.error(`${event} for task ${task.id} not sent`, error);
     }
   }
 

@@ -13,7 +13,11 @@ describe('task and tasklist DTOs', () => {
     ).toBe(false);
     expect(updateTaskSchema.safeParse({ taskListId: 1 }).success).toBe(false);
     expect(updateTaskSchema.safeParse({ id: 1 }).success).toBe(false);
-    // Completion goes through /task/:id/complete only.
+    // Completion is `completed`; the server picks the time.
+    expect(updateTaskSchema.safeParse({ completed: true }).success).toBe(true);
+    expect(updateTaskSchema.safeParse({ completed: 'yes' }).success).toBe(
+      false,
+    );
     expect(
       updateTaskSchema.safeParse({ completedAt: '2026-11-22T10:00:00Z' })
         .success,
@@ -44,6 +48,24 @@ describe('task and tasklist DTOs', () => {
     expect(
       updateTaskSchema.safeParse({ description: 'd'.repeat(201) }).success,
     ).toBe(false);
+  });
+
+  it('takes an optional deadline as an instant, with its zone', () => {
+    const deadline = (d: unknown) =>
+      createTaskSchema.safeParse({ title: 'a', deadline: d });
+    expect(deadline('2026-12-01T17:30:00Z').data?.deadline).toEqual(
+      new Date('2026-12-01T17:30:00Z'),
+    );
+    // An offset is turned into the same UTC instant.
+    expect(deadline('2026-12-01T19:30:00+02:00').data?.deadline).toEqual(
+      new Date('2026-12-01T17:30:00Z'),
+    );
+    expect(createTaskSchema.safeParse({ title: 'a' }).success).toBe(true);
+    expect(updateTaskSchema.parse({ deadline: null }).deadline).toBeNull();
+    // No zone means no instant: whose 10:00?
+    expect(deadline('2026-12-01T10:00').success).toBe(false);
+    expect(deadline('2026-12-01').success).toBe(false);
+    expect(deadline('2026-02-30T10:00:00Z').success).toBe(false);
   });
 
   it('limits a task list title to 50 characters, on create and update', () => {

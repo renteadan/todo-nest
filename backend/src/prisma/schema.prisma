@@ -11,6 +11,7 @@ model Task {
   completedAt DateTime? @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
   description String?
+  deadline    DateTime? @db.Timestamptz(3)
   id          Int       @id @default(autoincrement())
   taskListId  Int?
   title       String

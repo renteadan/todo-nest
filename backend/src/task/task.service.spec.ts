@@ -25,9 +25,11 @@ describe('TaskService', () => {
       update: vi.fn(({ where, data }) =>
         Promise.resolve({ ...tasks[where.id], ...data }),
       ),
+      create: vi.fn(({ data }) => Promise.resolve({ id: 9, ...data })),
+      delete: vi.fn(({ where }) => Promise.resolve(tasks[where.id])),
     },
   };
-  const gateway = { taskStatusChanged: vi.fn() };
+  const gateway = { taskChanged: vi.fn() };
   let service: TaskService;
 
   beforeEach(async () => {
@@ -48,32 +50,50 @@ describe('TaskService', () => {
     service = moduleRef.get(TaskService);
   });
 
-  it('completes an open task with the server’s time', async () => {
+  it('completes a task with the server’s time, and reopens it', async () => {
     const before = Date.now();
-    const task = (await service.complete(1, owner)) as { completedAt: Date };
-    expect(task.completedAt.getTime()).toBeGreaterThanOrEqual(before);
-    expect(gateway.taskStatusChanged).toHaveBeenCalledWith(task);
+    const done = (await service.update(1, { completed: true }, owner)) as {
+      completedAt: Date;
+    };
+    expect(done.completedAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(prisma.task.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({ completed: expect.anything() }),
+      }),
+    );
+    await expect(
+      service.update(2, { completed: false }, owner),
+    ).resolves.toMatchObject({ completedAt: null });
+    expect(gateway.taskChanged).toHaveBeenCalledWith('task.updated', done);
   });
 
-  it('keeps the original time when completing a done task again', async () => {
-    await expect(service.complete(2, owner)).resolves.toMatchObject({
-      completedAt: doneAt,
-    });
-    expect(prisma.task.update).not.toHaveBeenCalled();
-    expect(gateway.taskStatusChanged).not.toHaveBeenCalled();
+  it('keeps the first completion time when completing a done task again', async () => {
+    await expect(
+      service.update(2, { completed: true }, owner),
+    ).resolves.toMatchObject({ completedAt: doneAt });
   });
 
-  it('reopens a done task, and leaves an open one alone', async () => {
-    await expect(service.uncomplete(2, owner)).resolves.toMatchObject({
-      completedAt: null,
-    });
-    await service.uncomplete(1, owner);
-    expect(prisma.task.update).toHaveBeenCalledTimes(1);
-    expect(gateway.taskStatusChanged).toHaveBeenCalledTimes(1);
+  it('leaves completedAt alone when `completed` is not sent', async () => {
+    await expect(
+      service.update(2, { title: 'Renamed' }, owner),
+    ).resolves.toMatchObject({ completedAt: doneAt });
+  });
+
+  it('tells the task’s users it was created, updated or deleted', async () => {
+    const created = await service.create({ title: 'New' } as never, owner);
+    const updated = await service.update(1, { title: 'Renamed' }, owner);
+    const deleted = await service.remove(1, owner);
+    expect(gateway.taskChanged.mock.calls).toEqual([
+      ['task.created', created],
+      ['task.updated', updated],
+      ['task.deleted', deleted],
+    ]);
   });
 
   it('404s on someone else’s task', async () => {
-    await expect(service.complete(1, other)).rejects.toThrow(NotFoundException);
+    await expect(service.update(1, { completed: true }, other)).rejects.toThrow(
+      NotFoundException,
+    );
     expect(prisma.task.update).not.toHaveBeenCalled();
   });
 });
