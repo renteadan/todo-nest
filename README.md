@@ -25,6 +25,7 @@ docker compose up --build          # or `docker compose up --watch` to rebuild o
 - Postgres (`todo`/`todo`) and Redis run as containers. Postgres keeps its data in the `pgdata` volume.
 - Each app also loads its own env file if it exists: `backend/.env` and `frontend/.env.local`. The values in `docker-compose.yml` win over the files, so the container-network URLs and ports stay correct. Use the files for extras such as the Observe keys.
 - `JWT_SECRET` comes from `backend/.env` and must be set there.
+- The frontend image runs in production mode, so the session cookies are `Secure` while Compose serves plain http. Chrome and Firefox accept that on `localhost`; older Safari versions drop the cookies, so login won't stick there. Use another browser, or run the frontend [without Docker](#without-docker).
 
 ### Without Docker
 

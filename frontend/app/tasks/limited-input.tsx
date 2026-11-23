@@ -22,7 +22,7 @@ export function LimitedInput({
   const warningId = useId();
   const over = length > max;
 
-  // Form actions reset the form after submitting; start counting from 0 again.
+  // A form reset empties the input; start counting from 0 again.
   useEffect(() => {
     const form = ref.current?.form;
     const reset = () => setLength(0);
