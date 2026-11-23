@@ -32,6 +32,16 @@ export function ThemeSwitch() {
         onChange={(e) => {
           const theme = e.target.checked ? 'dark' : 'light';
           const root = document.documentElement;
+          // Swap the theme in one frame: without this, elements with colour
+          // transitions (list cards, buttons) fade in after everything else.
+          // The switch itself keeps its slide.
+          const still = document.createElement('style');
+          still.textContent =
+            '*:not(.switch),*:not(.switch)::before,*::after{transition:none!important}';
+          document.head.append(still);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => still.remove()),
+          );
           try {
             if (theme === systemTheme()) {
               delete root.dataset.theme;
