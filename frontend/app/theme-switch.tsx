@@ -10,7 +10,6 @@ const systemTheme = () => (matchMedia(dark).matches ? 'dark' : 'light');
 export function ThemeSwitch() {
   return (
     <label className="switch-label">
-      Dark mode
       <input
         type="checkbox"
         role="switch"
@@ -56,6 +55,7 @@ export function ThemeSwitch() {
           }
         }}
       />
+      Dark mode
     </label>
   );
 }

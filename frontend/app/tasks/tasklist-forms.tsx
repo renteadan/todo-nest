@@ -25,7 +25,7 @@ export function CreateTasklistForm() {
           noun="List names"
           className="flex-1"
         />
-        <button disabled={pending} className="btn-quiet">
+        <button disabled={pending} className="btn-quiet px-5 text-base">
           {pending ? 'Creating…' : 'Create list'}
         </button>
       </div>
