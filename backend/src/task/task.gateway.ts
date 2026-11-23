@@ -16,7 +16,11 @@ const userRoom = (userId: number) => `user:${userId}`;
  * Server-to-client events only. Clients connect to the API's own port
  * (socket.io, path /socket.io/) with
  * `io(url, { auth: { token: accessToken }, transports: ['websocket'] })`
- * and listen for `task.status`.
+ * and listen for:
+ * - `task.status`: the task, when it is completed or reopened.
+ * - `tasklist.updated`: the list with its tasks, when it is created, renamed,
+ *   or a task moves into or out of it.
+ * - `tasklist.deleted`: `{ id }`; the list's tasks are now in no list.
  */
 // WebSocket only: HTTP long-polling would need sticky sessions across pods.
 @WebSocketGateway({ transports: ['websocket'] })
@@ -64,6 +68,31 @@ export class TaskGateway implements OnGatewayConnection {
     } catch (error) {
       this.logger.error(`task.status for task ${task.id} not sent`, error);
     }
+  }
+
+  /** Sends the list, with its tasks, to its users. Never throws. */
+  async tasklistUpdated(taskListId: number) {
+    try {
+      const list = await this.prisma.taskList.findUnique({
+        where: { id: taskListId },
+        include: { Task: { orderBy: { id: 'asc' } } },
+      });
+      if (list) {
+        this.server.to(userRoom(list.userId)).emit('tasklist.updated', list);
+      }
+    } catch (error) {
+      this.logger.error(
+        `tasklist.updated for list ${taskListId} not sent`,
+        error,
+      );
+    }
+  }
+
+  // shortcut: sends to the owner only; send to the members once lists are shared.
+  tasklistDeleted(list: { id: number; userId: number }) {
+    this.server
+      .to(userRoom(list.userId))
+      .emit('tasklist.deleted', { id: list.id });
   }
 
   // shortcut: a list has one user (its owner); return its members once lists are shared.

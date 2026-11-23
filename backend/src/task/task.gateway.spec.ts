@@ -39,4 +39,26 @@ describe('TaskGateway.taskStatusChanged', () => {
     await expect(gateway.taskStatusChanged(task(3))).resolves.toBeUndefined();
     expect(emit).not.toHaveBeenCalled();
   });
+
+  it('sends the list with its tasks to its owner', async () => {
+    const list = { id: 3, userId: 7, Task: [task(3)] };
+    findUnique.mockResolvedValue(list);
+    await gateway.tasklistUpdated(3);
+    expect(server.to).toHaveBeenCalledWith('user:7');
+    expect(emit).toHaveBeenCalledWith('tasklist.updated', list);
+  });
+
+  it('sends nothing, and never throws, when the list is gone or the db fails', async () => {
+    findUnique.mockResolvedValueOnce(null);
+    await gateway.tasklistUpdated(3);
+    findUnique.mockRejectedValueOnce(new Error('db down'));
+    await expect(gateway.tasklistUpdated(3)).resolves.toBeUndefined();
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('tells the owner a list was deleted', () => {
+    gateway.tasklistDeleted({ id: 3, userId: 7 });
+    expect(server.to).toHaveBeenCalledWith('user:7');
+    expect(emit).toHaveBeenCalledWith('tasklist.deleted', { id: 3 });
+  });
 });
