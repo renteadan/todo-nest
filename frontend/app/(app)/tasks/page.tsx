@@ -1,6 +1,5 @@
 import { cache, Suspense } from 'react';
-import { Navbar } from '../navbar';
-import { authFetch, currentUserId } from '../lib/session';
+import { authFetch, currentUserId } from '../../lib/session';
 import { ActionErrors } from './action-error';
 import {
   deleteTask,
@@ -38,24 +37,21 @@ type Tasklist = { id: number; title: string; userId: number };
 export default function TasksPage() {
   const loading = <p className="text-muted">Loading…</p>;
   return (
-    <>
-      <Navbar />
-      <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-10 sm:py-12 lg:grid-cols-2 lg:gap-x-10">
-        <h1 className="display text-5xl sm:text-6xl lg:col-span-2">Tasks</h1>
-        <div className="flex min-w-0 flex-col gap-6">
-          <CreateTaskForm />
-          {/* Reads the session cookie, so it streams in at request time. */}
-          <Suspense fallback={loading}>
-            <Inbox />
-          </Suspense>
-          <CreateTasklistForm />
-        </div>
+    <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-10 sm:py-12 lg:grid-cols-2 lg:gap-x-10">
+      <h1 className="display text-5xl sm:text-6xl lg:col-span-2">Tasks</h1>
+      <div className="flex min-w-0 flex-col gap-6">
+        <CreateTaskForm />
+        {/* Reads the session cookie, so it streams in at request time. */}
         <Suspense fallback={loading}>
-          <Lists />
+          <Inbox />
         </Suspense>
-        <ActionErrors />
-      </main>
-    </>
+        <CreateTasklistForm />
+      </div>
+      <Suspense fallback={loading}>
+        <Lists />
+      </Suspense>
+      <ActionErrors />
+    </main>
   );
 }
 

@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { authFetch } from '../lib/session';
-import { Navbar } from '../navbar';
+import { authFetch } from '../../lib/session';
 import { LocalTime } from './local-time';
 
 type User = { id: number; name: string | null; email: string; role: string };
@@ -22,16 +21,13 @@ type Tasklist = { id: number; title: string };
 
 export default function AdminPage({ searchParams }: PageProps<'/admin'>) {
   return (
-    <>
-      <Navbar />
-      <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-10 sm:py-12 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-x-10">
-        {/* All of it, title included, waits for the admin check, so a
-            non-admin sees none of the page. */}
-        <Suspense fallback={<p className="text-muted">Loading…</p>}>
-          <Board searchParams={searchParams} />
-        </Suspense>
-      </main>
-    </>
+    <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-10 sm:py-12 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-x-10">
+      {/* All of it, title included, waits for the admin check, so a
+          non-admin sees none of the page. */}
+      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+        <Board searchParams={searchParams} />
+      </Suspense>
+    </main>
   );
 }
 
