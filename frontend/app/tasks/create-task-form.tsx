@@ -1,22 +1,34 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useState, useTransition } from 'react';
 import { createTask } from './actions';
+import { DateTimePicker } from './date-picker';
 import { LimitedInput } from './limited-input';
 import { localToUtc } from './local-time';
 
 export function CreateTaskForm() {
-  const [state, action, pending] = useActionState(createTask, {});
+  const [error, setError] = useState<string>();
+  const [pending, startTransition] = useTransition();
+  const [deadline, setDeadline] = useState('');
 
   return (
     <form
-      action={(formData) => {
+      // Not a form `action`: React would clear the fields even when the task
+      // is rejected. Reset by hand, only on success.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const formData = new FormData(form);
         // Here, in the browser: the server action doesn't know the user's zone.
-        formData.set(
-          'deadline',
-          localToUtc(String(formData.get('deadlineLocal') ?? '')),
-        );
-        action(formData);
+        formData.set('deadline', localToUtc(deadline));
+        startTransition(async () => {
+          const result = await createTask({}, formData);
+          setError(result.error);
+          if (!result.error) {
+            form.reset();
+            setDeadline('');
+          }
+        });
       }}
       className="flex flex-col gap-2"
     >
@@ -44,16 +56,17 @@ export function CreateTaskForm() {
           noun="Details"
           className="flex-1 text-sm"
         />
-        <input
-          type="datetime-local"
-          name="deadlineLocal"
-          aria-label="Deadline (optional)"
-          title="Deadline (optional)"
-          className="field text-sm"
+        <DateTimePicker
+          value={deadline}
+          onChange={setDeadline}
+          label="Deadline (optional)"
+          placeholder="Deadline (optional)"
+          align="end"
+          triggerClassName={`field text-sm ${deadline ? '' : 'text-muted'}`}
         />
       </div>
       <p aria-live="polite" className="text-sm text-danger">
-        {state.error}
+        {error}
       </p>
     </form>
   );

@@ -15,7 +15,7 @@ These manifests run the API on a k3s cluster:
 
 ## How a release flows
 
-1. You push to `main`.
+1. A pull request is merged into `main`. `main` is protected, so nothing is pushed to it directly.
 2. [.github/workflows/backend.yml](../../.github/workflows/backend.yml) builds `ghcr.io/renteadan/todo-backend` and tags it `sha-<commit>`.
 3. Within 2 minutes, Argo CD Image Updater (in the `docker-stacks` repo, `k8s/argocd-image-updater/`) sees the new tag in GHCR and sets it on the `todo-backend` Application. Nothing is committed to git; the `images:` tag in [kustomization.yaml](kustomization.yaml) is only the starting point.
 4. Argo CD rolls out the new version. Each new pod applies pending migrations before it starts the API, so no new pod takes traffic before its migrations are done.
@@ -83,7 +83,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
    ```
    You can also do this in the UI: Settings → Repositories → Connect repo → HTTPS.
 
-8. **Push, then let Argo CD pick it up.** Push to `main` and wait for the first workflow run, which pushes the images. Image Updater picks up the newest one. The Application itself lives in the `docker-stacks` repo (`k8s/apps/todo-backend.yaml`), where the `root` app-of-apps creates it. Then run:
+8. **Merge, then let Argo CD pick it up.** Merge a pull request into `main` and wait for the first workflow run, which pushes the images. Image Updater picks up the newest one. The Application itself lives in the `docker-stacks` repo (`k8s/apps/todo-backend.yaml`), where the `root` app-of-apps creates it. Then run:
    ```sh
    argocd app get todo-backend   # or watch it in the UI
    ```
@@ -108,7 +108,7 @@ When a token expires, Argo CD stops syncing, or new pods can't pull images. Note
 
 ## Day to day
 
-- **Release:** push to `main`. Everything else is automatic.
+- **Release:** merge a pull request into `main`. Everything else is automatic.
 - **Change a secret:** edit the `.env` file, then replace the Secret. `create` refuses to overwrite an existing Secret, so render it and apply it instead. Pods read env vars only at startup, so restart them afterwards:
   ```sh
   kubectl -n todo-app create secret generic todo-backend-env --from-env-file=k8s/secrets/app.env \

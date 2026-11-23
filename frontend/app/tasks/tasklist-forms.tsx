@@ -53,7 +53,10 @@ export function DraggableTask({
       // Decided per press: in an edit field the mouse selects text instead of
       // picking up the row. Set on the DOM, as React never re-renders it.
       onPointerDown={(e) => {
-        e.currentTarget.draggable = !(e.target instanceof HTMLInputElement);
+        e.currentTarget.draggable = !(
+          e.target instanceof HTMLInputElement ||
+          (e.target as Element).closest('.picker')
+        );
       }}
       onDragStart={(e) => {
         e.dataTransfer.setData(

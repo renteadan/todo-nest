@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo
+      POSTGRES_DB: todo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo -d todo"]
+      interval: 2s
+      retries: 30
+
+  redis:
+    image: redis:8-alpine
+
+  backend:
+    build: ./backend
+    # Values under `environment` win over the file, so container-network URLs stay correct.
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://todo:todo@postgres:5432/todo
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3001:3000"
+    # `docker compose up --watch`: rebuild the image and restart on source changes.
+    develop:
+      watch:
+        - path: ./backend
+          action: rebuild
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    env_file:
+      - path: ./frontend/.env.local
+        required: false
+    environment:
+      BACKEND_URL: http://backend:3000
+      # What the browser connects to for live updates.
+      BACKEND_PUBLIC_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    develop:
+      watch:
+        - path: ./frontend
+          action: rebuild
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
