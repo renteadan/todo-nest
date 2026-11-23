@@ -12,11 +12,18 @@ import { type Task } from '../generated/prisma/client.js';
 
 const userRoom = (userId: number) => `user:${userId}`;
 
+type TaskEvent = 'task.created' | 'task.updated' | 'task.deleted';
+
 /**
  * Server-to-client events only. Clients connect to the API's own port
  * (socket.io, path /socket.io/) with
  * `io(url, { auth: { token: accessToken }, transports: ['websocket'] })`
- * and listen for `task.status`.
+ * and listen for:
+ * - `task.created`, `task.updated` (completing or reopening included),
+ *   `task.deleted`: the task.
+ * - `tasklist.updated`: the list with its tasks, when it is created, renamed,
+ *   or a task moves into or out of it.
+ * - `tasklist.deleted`: `{ id }`; the list's tasks are now in no list.
  */
 // WebSocket only: HTTP long-polling would need sticky sessions across pods.
 @WebSocketGateway({ transports: ['websocket'] })
@@ -52,18 +59,43 @@ export class TaskGateway implements OnGatewayConnection {
    * Tells every user with access to the task's list (the task's owner when
    * it is in no list). Never throws: the change is already saved.
    */
-  async taskStatusChanged(task: Task) {
+  async taskChanged(event: TaskEvent, task: Task) {
     try {
       const userIds =
         task.taskListId === null
           ? [task.userId]
           : await this.listUserIds(task.taskListId);
       if (userIds.length > 0) {
-        this.server.to(userIds.map(userRoom)).emit('task.status', task);
+        this.server.to(userIds.map(userRoom)).emit(event, task);
       }
     } catch (error) {
-      this.logger.error(`task.status for task ${task.id} not sent`, error);
+      this.logger.error(`${event} for task ${task.id} not sent`, error);
     }
+  }
+
+  /** Sends the list, with its tasks, to its users. Never throws. */
+  async tasklistUpdated(taskListId: number) {
+    try {
+      const list = await this.prisma.taskList.findUnique({
+        where: { id: taskListId },
+        include: { Task: { orderBy: { id: 'asc' } } },
+      });
+      if (list) {
+        this.server.to(userRoom(list.userId)).emit('tasklist.updated', list);
+      }
+    } catch (error) {
+      this.logger.error(
+        `tasklist.updated for list ${taskListId} not sent`,
+        error,
+      );
+    }
+  }
+
+  // shortcut: sends to the owner only; send to the members once lists are shared.
+  tasklistDeleted(list: { id: number; userId: number }) {
+    this.server
+      .to(userRoom(list.userId))
+      .emit('tasklist.deleted', { id: list.id });
   }
 
   // shortcut: a list has one user (its owner); return its members once lists are shared.

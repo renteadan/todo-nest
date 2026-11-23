@@ -1,26 +1,248 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f1f4ef;
+  --foreground: #16302a;
+  --surface: #fbfcfa;
+  --muted: #66766e;
+  --line: #d6ddd5;
+  --mark: #e3a21a;
+  --danger: #b4321f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-mark: var(--mark);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-bricolage);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0e1915;
+    --foreground: #e4ece6;
+    --surface: #15241f;
+    --muted: #8fa198;
+    --line: #2a3b35;
+    --mark: #f0b53a;
+    --danger: #f07a63;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mark);
+  outline-offset: 2px;
+}
+
+/* A list's "Show completed" switch is off (tasks/list-shell.tsx). */
+[data-hide-done] .task-row[data-done] {
+  display: none;
+}
+
+@layer components {
+  /* Condensed, heavy cut of the same family for titles. */
+  .display {
+    font-weight: 750;
+    font-stretch: 75%;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+
+  .field {
+    @apply rounded-lg border border-line bg-surface px-3 py-2 placeholder:text-muted;
+  }
+
+  .btn {
+    @apply rounded-lg bg-foreground px-5 py-2 font-medium text-background disabled:opacity-50;
+  }
+
+  .btn-quiet {
+    @apply rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-surface disabled:opacity-50;
+  }
+
+  .btn-danger {
+    @apply flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-danger hover:text-danger motion-reduce:transition-none;
+  }
+
+  .btn-delete {
+    @apply rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 dark:text-background disabled:opacity-60;
+  }
+
+  /* Task-row delete: a soft red disc on hover, with the bin's lid lifting. */
+  .icon-danger {
+    @apply grid size-8 shrink-0 place-items-center rounded-full text-muted transition motion-reduce:transition-none;
+  }
+
+  .icon-danger:hover,
+  .icon-danger:focus-visible {
+    @apply text-danger;
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+  }
+
+  .icon-danger:active {
+    @apply scale-90;
+  }
+
+  /* Only hidden where hovering is possible; touch screens always show it. */
+  @media (hover: hover) {
+    .icon-danger {
+      @apply opacity-0;
+    }
+    .task-row:hover .icon-danger,
+    .icon-danger:focus-visible {
+      @apply opacity-100;
+    }
+  }
+
+  .trash-lid {
+    transform-box: fill-box;
+    transform-origin: 0% 100%;
+    transition: transform 150ms ease-out;
+  }
+
+  :is(.icon-danger, .btn-danger):hover .trash-lid {
+    transform: translateY(-1px) rotate(-12deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trash-lid {
+      transition: none;
+    }
+  }
+
+  .confirm {
+    @apply m-auto w-[calc(100%-2rem)] max-w-sm overflow-hidden rounded-2xl border border-line bg-surface p-0 text-foreground shadow-2xl;
+  }
+
+  .confirm::backdrop {
+    background: color-mix(in srgb, #0e1915 45%, transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  /* Click-to-edit text: looks like text, hints it is editable on hover. */
+  .editable {
+    @apply -mx-1 max-w-full rounded px-1 text-left break-words hover:bg-line/40;
+  }
+
+  .editable-empty {
+    @apply text-muted/70 italic;
+  }
+
+  /* Out of sight until the row is hovered, but still reachable by keyboard
+     and always shown on touch screens, which can't hover. */
+  @media (hover: hover) {
+    .editable-empty {
+      @apply sr-only;
+    }
+    .task-row:hover .editable-empty,
+    .editable-empty:focus-visible {
+      @apply not-sr-only;
+    }
+  }
+
+  .inline-field {
+    @apply -mx-1 w-full rounded border border-line bg-surface px-1 outline-none focus:border-mark aria-invalid:border-danger;
+  }
+
+  /* Small icon button that shows on header hover, e.g. rename a list. */
+  .icon-quiet {
+    @apply grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-line/40 hover:text-foreground;
+  }
+
+  @media (hover: hover) {
+    .icon-quiet {
+      @apply opacity-0;
+    }
+    .section-head:hover .icon-quiet,
+    .icon-quiet:focus-visible {
+      @apply opacity-100;
+    }
+  }
+
+  .section {
+    @apply rounded-xl border border-line bg-surface transition-colors motion-reduce:transition-none;
+  }
+
+  /* The inbox flips the page's scheme: it is where new work lands. */
+  .inbox {
+    --surface: #16302a;
+    --foreground: #f1f4ef;
+    --background: #1f3d35;
+    --muted: #a5b7ae;
+    --line: #3a564d;
+    --danger: #f07a63; /* the page's red is too dark on this panel */
+    color: var(--foreground);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .inbox {
+      --surface: #1c3b32;
+      --foreground: #eef4f0;
+      --background: #23463c;
+      --muted: #9db6aa;
+      --line: #2f5246;
+    }
+  }
+
+  /* The one loud moment: the list you are dragging a task over. */
+  .drop-zone[data-over] {
+    border-color: var(--mark);
+    background: color-mix(in srgb, var(--mark) 12%, var(--surface));
+    box-shadow: 0 0 0 2px var(--mark);
+  }
+
+  .drop-zone[aria-busy='true'] {
+    @apply opacity-70;
+  }
+
+  .section-head {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3;
+  }
+
+  .task-row {
+    @apply flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-background;
+  }
+
+  .grip {
+    @apply cursor-grab text-line hover:text-muted active:cursor-grabbing;
+  }
+
+  .check {
+    @apply grid size-5 place-items-center rounded-full border-2 border-muted text-transparent hover:border-foreground;
+  }
+
+  .check[aria-pressed='true'] {
+    @apply border-mark bg-mark text-surface;
+  }
+
+  .switch-label {
+    @apply flex cursor-pointer items-center gap-2 text-sm text-muted select-none hover:text-foreground;
+  }
+
+  /* A small pill switch; the knob slides over and the track turns marigold. */
+  .switch {
+    @apply relative h-4 w-7 shrink-0 cursor-pointer appearance-none rounded-full bg-line transition-colors motion-reduce:transition-none;
+  }
+
+  .switch::before {
+    @apply absolute top-0.5 left-0.5 size-3 rounded-full bg-white shadow-sm transition-transform content-[''] motion-reduce:transition-none;
+  }
+
+  .switch:checked {
+    @apply bg-mark;
+  }
+
+  .switch:checked::before {
+    @apply translate-x-3;
+  }
 }

@@ -42,6 +42,15 @@ export async function requireToken() {
   return token;
 }
 
+/**
+ * The logged-in user's id, from the access token's `sub`. Not verified here:
+ * only for picking what to show, as the backend checks every request.
+ */
+export async function currentUserId() {
+  const payload = (await requireToken()).split('.')[1];
+  return Number(JSON.parse(Buffer.from(payload, 'base64url').toString()).sub);
+}
+
 /** backendFetch as the logged-in user; any 401 sends the user to /login. */
 export async function authFetch(path: string, init: RequestInit = {}) {
   const res = await backendFetch(path, {

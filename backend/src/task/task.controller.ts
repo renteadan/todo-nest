@@ -55,22 +55,4 @@ export class TaskController {
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
     return this.taskService.remove(id, user);
   }
-
-  /** Marks the task done, at the server's time. */
-  @Post(':id/complete')
-  complete(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: AuthUser,
-  ) {
-    return this.taskService.complete(id, user);
-  }
-
-  /** Marks the task not done. */
-  @Delete(':id/complete')
-  uncomplete(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: AuthUser,
-  ) {
-    return this.taskService.uncomplete(id, user);
-  }
 }

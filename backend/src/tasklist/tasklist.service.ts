@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,8 +10,12 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { type AuthUser } from '../auth/auth-types.js';
 import { OwnerPolicy } from '../auth/owner.policy.js';
 import { TaskService } from '../task/task.service.js';
+import { TaskGateway } from '../task/task.gateway.js';
 import { type CreateTasklistDto } from './dto/create-tasklist.dto.js';
 import { type UpdateTasklistDto } from './dto/update-tasklist.dto.js';
+
+/** Completed tasks count too. */
+export const MAX_TASKS_PER_LIST = 50;
 
 @Injectable()
 export class TasklistService {
@@ -17,12 +23,15 @@ export class TasklistService {
     private readonly prisma: PrismaService,
     private readonly authorization: AuthorizationService,
     private readonly taskService: TaskService,
+    private readonly gateway: TaskGateway,
   ) {}
 
-  create(createTasklistDto: CreateTasklistDto, user: AuthUser) {
-    return this.prisma.taskList.create({
+  async create(createTasklistDto: CreateTasklistDto, user: AuthUser) {
+    const list = await this.prisma.taskList.create({
       data: { ...createTasklistDto, userId: user.id, updatedAt: new Date() },
     });
+    await this.gateway.tasklistUpdated(list.id);
+    return list;
   }
 
   async findAll(user: AuthUser) {
@@ -48,27 +57,40 @@ export class TasklistService {
     return list;
   }
 
+  /** Like findOne, but only the owner may change a list: admins can only view it. */
+  private async findOwned(id: number, user: AuthUser) {
+    const list = await this.findOne(id, user);
+    if (list.userId !== user.id) {
+      throw new ForbiddenException(`Only the owner can change task list ${id}`);
+    }
+    return list;
+  }
+
   async update(
     id: number,
     updateTasklistDto: UpdateTasklistDto,
     user: AuthUser,
   ) {
-    await this.findOne(id, user);
-    return this.prisma.taskList.update({
+    await this.findOwned(id, user);
+    const list = await this.prisma.taskList.update({
       where: { id },
       data: { ...updateTasklistDto, updatedAt: new Date() },
     });
+    await this.gateway.tasklistUpdated(id);
+    return list;
   }
 
   /** Its tasks stay, outside any list (onDelete: SetNull). */
   async remove(id: number, user: AuthUser) {
-    await this.findOne(id, user);
-    return this.prisma.taskList.delete({ where: { id } });
+    await this.findOwned(id, user);
+    const list = await this.prisma.taskList.delete({ where: { id } });
+    this.gateway.tasklistDeleted(list);
+    return list;
   }
 
   /** Puts one task in this list, moving it out of any other list. */
   async addTask(id: number, taskId: number, user: AuthUser) {
-    const list = await this.findOne(id, user);
+    const list = await this.findOwned(id, user);
     const task = await this.taskService.findOne(taskId, user);
     // An admin can reach both, but a list only holds its owner's tasks.
     if (task.userId !== list.userId) {
@@ -76,22 +98,44 @@ export class TasklistService {
         'The task and the list have different owners',
       );
     }
-    return this.moveTask(taskId, id);
+    const moved = await this.prisma.$transaction(async (tx) => {
+      // Locks the list row, so two concurrent adds can't both pass the count.
+      await tx.$queryRaw`SELECT 1 FROM "TaskList" WHERE id = ${id} FOR UPDATE`;
+      // The others, counted under the lock: whether this task is in the list
+      // was read before it, and may have changed since.
+      if (
+        (await tx.task.count({
+          where: { taskListId: id, NOT: { id: taskId } },
+        })) >= MAX_TASKS_PER_LIST
+      ) {
+        throw new ConflictException(
+          `Task list ${id} already has ${MAX_TASKS_PER_LIST} tasks`,
+        );
+      }
+      return tx.task.update({
+        where: { id: taskId },
+        data: { taskListId: id, updatedAt: new Date() },
+      });
+    });
+    await this.gateway.tasklistUpdated(id);
+    // The list it came from changed too.
+    if (task.taskListId !== null && task.taskListId !== id) {
+      await this.gateway.tasklistUpdated(task.taskListId);
+    }
+    return moved;
   }
 
   async removeTask(id: number, taskId: number, user: AuthUser) {
-    await this.findOne(id, user);
+    await this.findOwned(id, user);
     const task = await this.taskService.findOne(taskId, user);
     if (task.taskListId !== id) {
       throw new NotFoundException(`Task ${taskId} is not in task list ${id}`);
     }
-    return this.moveTask(taskId, null);
-  }
-
-  private moveTask(taskId: number, taskListId: number | null) {
-    return this.prisma.task.update({
+    const moved = await this.prisma.task.update({
       where: { id: taskId },
-      data: { taskListId, updatedAt: new Date() },
+      data: { taskListId: null, updatedAt: new Date() },
     });
+    await this.gateway.tasklistUpdated(id);
+    return moved;
   }
 }
