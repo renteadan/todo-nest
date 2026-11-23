@@ -17,12 +17,16 @@ These manifests run the API on a k3s cluster:
 
 1. You push to `main`.
 2. [.github/workflows/backend.yml](../../.github/workflows/backend.yml) builds `ghcr.io/renteadan/todo-backend` and tags it `sha-<commit>`.
-3. The workflow's `deploy` job writes that tag into [kustomization.yaml](kustomization.yaml) (`images:`) and commits `deploy: <sha>` to `main`.
-4. Argo CD sees the commit and rolls out the new version. Each new pod applies pending migrations before it starts the API, so no new pod takes traffic before its migrations are done.
+3. Within 2 minutes, Argo CD Image Updater (in the `docker-stacks` repo, `k8s/argocd-image-updater/`) sees the new tag in GHCR and sets it on the `todo-backend` Application. Nothing is committed to git; the `images:` tag in [kustomization.yaml](kustomization.yaml) is only the starting point.
+4. Argo CD rolls out the new version. Each new pod applies pending migrations before it starts the API, so no new pod takes traffic before its migrations are done.
 
-To roll back, revert the `deploy:` commit, or pick an older sync in the Argo CD UI.
+To see which tag is live: `argocd app get todo-backend` (or the Argo CD UI), not git.
 
-If `main` is protected by branch rules, allow GitHub Actions to push to it. Otherwise the `deploy` job fails.
+To roll back, first stop the updater from moving the app forward again: remove its entry from `k8s/argocd-image-updater/todo.yaml` in `docker-stacks` and push. Then set the older tag:
+```sh
+argocd app set todo-backend --kustomize-image ghcr.io/renteadan/todo-backend:sha-<older>
+```
+Put the entry back once a fixed build is on `main`.
 
 ## One-time setup
 
@@ -79,7 +83,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
    ```
    You can also do this in the UI: Settings → Repositories → Connect repo → HTTPS.
 
-8. **Push, then let Argo CD pick it up.** Push to `main` and wait for the first workflow run, which pins the image tags. The Application itself lives in the `docker-stacks` repo (`k8s/apps/todo-backend.yaml`), where the `root` app-of-apps creates it. Then run:
+8. **Push, then let Argo CD pick it up.** Push to `main` and wait for the first workflow run, which pushes the images. Image Updater picks up the newest one. The Application itself lives in the `docker-stacks` repo (`k8s/apps/todo-backend.yaml`), where the `root` app-of-apps creates it. Then run:
    ```sh
    argocd app get todo-backend   # or watch it in the UI
    ```

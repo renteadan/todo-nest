@@ -46,8 +46,8 @@ client ──https──▶ Caddy (on the node) ──▶ todo-backend Service  
 ```
 
 - The Service cluster IPs are pinned, so Caddy can `reverse_proxy` straight to them. There is no ingress controller.
-- A push to `main` that changes an app's code runs its workflow ([backend.yml](.github/workflows/backend.yml), [frontend.yml](.github/workflows/frontend.yml)). It builds `ghcr.io/renteadan/todo-<app>`, tagged `sha-<commit>`. Then it commits that tag to the app's `k8s/kustomization.yaml` as `deploy: <sha>` or `deploy(frontend): <sha>`.
-- Argo CD syncs those folders and rolls out the new version. The Application definitions live in the `docker-stacks` repo. To roll back, revert the `deploy` commit.
+- A push to `main` that changes an app's code runs its workflow ([backend.yml](.github/workflows/backend.yml), [frontend.yml](.github/workflows/frontend.yml)). It builds `ghcr.io/renteadan/todo-<app>`, tagged `sha-<commit>`. Nothing is committed back to git.
+- Argo CD Image Updater sees the new tag in GHCR within 2 minutes and sets it on the app's Argo CD Application, which rolls out the new version. The Applications and the updater's config live in the `docker-stacks` repo. Rollback steps are in [backend/k8s/README.md](backend/k8s/README.md#how-a-release-flows).
 - The backend applies pending Prisma migrations when each pod starts.
 - Clients get live task updates over socket.io on the API's port (`/socket.io/`, WebSocket transport only). With `REDIS_URL` set, as in the cluster, events go through Redis so every API pod can deliver them. Without it, as locally, they stay in one process. With `NODE_ENV=production` (set by the Dockerfile) the API refuses to start without `REDIS_URL`.
 - Secrets (`postgres-credentials`, `todo-backend-env`, `ghcr-pull`) are created by hand with `kubectl` and are never in git.
