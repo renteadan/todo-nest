@@ -5,8 +5,19 @@ import { sessionCookies, type TokenPair } from './app/lib/session';
 /**
  * Guards the logged-in pages. A live access token passes; an expired one is
  * swapped for a new pair via the refresh token; no session goes to /login.
+ * Also sends a logged-in visitor from the home page (the login form) to /tasks.
  */
 export async function proxy(request: NextRequest) {
+  const hasSession =
+    request.cookies.has('access_token') || request.cookies.has('refresh_token');
+  // Home is the login form. With a session, go on to /tasks, which refreshes or
+  // clears it below; a dead one ends at /login, which never redirects, so no loop.
+  if (request.nextUrl.pathname === '/') {
+    return hasSession
+      ? NextResponse.redirect(new URL('/tasks', request.url))
+      : NextResponse.next();
+  }
+
   if (request.cookies.has('access_token')) return NextResponse.next();
 
   const refreshToken = request.cookies.get('refresh_token')?.value;
@@ -33,5 +44,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/tasks/:path*'],
+  matcher: ['/', '/tasks/:path*'],
 };

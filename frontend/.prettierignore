@@ -1,0 +1,2 @@
+# Rewritten by the deploy workflow on every release.
+k8s/

@@ -22,7 +22,7 @@ npm install
 # .env: DATABASE_URL=postgresql://..., JWT_SECRET=...
 # (optional: OBSERVE_APP_KEY and OBSERVE_APP_SECRET for NestJS Observe)
 npx prisma migrate dev --config prisma7.config.ts   # applies migrations and generates the client
-npm run start:dev                                   # http://localhost:3000
+npm run dev                                         # http://localhost:3000
 ```
 
 Tests: `npm test` (unit) and `npm run test:e2e`. Lint: `npm run lint`.

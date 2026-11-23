@@ -2,64 +2,72 @@
 
 import Link from 'next/link';
 import { useActionState } from 'react';
+import { AuthShell } from '../auth-shell';
 import { signup } from './actions';
 
-const input =
-  'rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700';
+const link = 'font-medium text-foreground underline underline-offset-4';
 
 export default function SignupPage() {
   const [state, action, pending] = useActionState(signup, {});
 
-  if (state.success) {
-    return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6">
-        <h1 className="text-2xl font-semibold">Account created</h1>
-        <Link href="/login" className="underline">
-          Log in
-        </Link>
-      </main>
-    );
-  }
-
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-24">
-      <form action={action} className="flex w-full max-w-sm flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Create an account</h1>
-        <label className="flex flex-col gap-1">
-          Name
-          <input name="name" required autoComplete="name" className={input} />
-        </label>
-        <label className="flex flex-col gap-1">
-          Email
-          <input
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className={input}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          Password
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            className={input}
-          />
-        </label>
-        <p aria-live="polite" className="text-sm text-red-600">
-          {state.error}
-        </p>
-        <button
-          disabled={pending}
-          className="rounded-full bg-foreground px-6 py-3 font-medium text-background disabled:opacity-50"
-        >
-          {pending ? 'Creating account…' : 'Sign up'}
-        </button>
-      </form>
-    </main>
+    <AuthShell>
+      {state.success ? (
+        <div className="flex flex-col gap-5">
+          <h1 className="display text-5xl">You’re in</h1>
+          <p className="text-muted">
+            Your account is ready. Log in to make your first list.
+          </p>
+          <Link href="/" className="btn py-3 text-center">
+            Log in
+          </Link>
+        </div>
+      ) : (
+        <form action={action} className="flex flex-col gap-5">
+          <h1 className="display text-5xl">Create an account</h1>
+          <label className="field-label">
+            Name
+            <input name="name" required autoComplete="name" className="field" />
+          </label>
+          <label className="field-label">
+            Email
+            <input
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              className="field"
+            />
+          </label>
+          <label className="field-label">
+            Password
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              aria-describedby="password-hint"
+              className="field"
+            />
+            <span id="password-hint" className="font-normal text-muted">
+              At least 8 characters.
+            </span>
+          </label>
+          <p aria-live="polite" className="text-sm text-danger empty:hidden">
+            {state.error}
+          </p>
+          <button disabled={pending} className="btn py-3">
+            {pending ? 'Creating account…' : 'Create account'}
+          </button>
+          <p className="text-sm text-muted">
+            Already have an account?{' '}
+            <Link href="/" className={link}>
+              Log in
+            </Link>
+          </p>
+        </form>
+      )}
+    </AuthShell>
   );
 }
