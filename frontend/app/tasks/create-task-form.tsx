@@ -41,7 +41,7 @@ export function CreateTaskForm() {
           max={50}
           trim
           noun="Task names"
-          className="flex-1 text-lg"
+          className="flex-1"
         />
         <button disabled={pending} className="btn">
           {pending ? 'Adding…' : 'Add task'}

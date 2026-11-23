@@ -1,15 +1,27 @@
 @import 'tailwindcss';
 
-/* Always light: the app is used in daylight, on phones and laptops. */
+/* Follows the system theme; the navbar switch pins one (theme-switch.tsx). */
 :root {
+  color-scheme: light dark;
+  --background: light-dark(#e1e5dc, #0e1613);
+  --foreground: light-dark(#16302a, #e4ece6);
+  --surface: light-dark(#eef0ea, #16211d);
+  --muted: light-dark(#56665e, #93a69c);
+  --line: light-dark(#cbd3c9, #2a3832);
+  --mark: light-dark(#e3a21a, #f0b232);
+  --danger: light-dark(#b4321f, #e0553e);
+  /* Text on marigold stays dark in both themes. */
+  --on-mark: #16302a;
+  /* Switch knob: lighter than the track in both themes. */
+  --knob: light-dark(#f8f9f5, #e4ece6);
+}
+
+:root[data-theme='light'] {
   color-scheme: light;
-  --background: #f7f9f4;
-  --foreground: #16302a;
-  --surface: #ffffff;
-  --muted: #5d6e66;
-  --line: #dfe6de;
-  --mark: #e3a21a;
-  --danger: #b4321f;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -21,6 +33,8 @@
   --color-mark: var(--mark);
   --color-danger: var(--danger);
   --font-sans: var(--font-bricolage);
+  /* Menus, the date picker, dialogs and the login demo card. */
+  --shadow-float: 0 16px 40px -16px rgb(22 48 42 / 0.45);
 }
 
 body {
@@ -63,11 +77,11 @@ textarea {
   }
 
   .btn {
-    @apply rounded-lg bg-foreground px-5 py-2 font-medium text-background disabled:opacity-50;
+    @apply rounded-lg border border-transparent bg-foreground px-5 py-2 font-medium text-background hover:bg-foreground/90 disabled:opacity-50 transition-colors motion-reduce:transition-none;
   }
 
   .btn-quiet {
-    @apply rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-surface disabled:opacity-50;
+    @apply rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-line/40 disabled:opacity-50 transition-colors motion-reduce:transition-none;
   }
 
   .btn-danger {
@@ -75,7 +89,7 @@ textarea {
   }
 
   .btn-delete {
-    @apply rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 disabled:opacity-60;
+    @apply rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 disabled:opacity-50 transition motion-reduce:transition-none;
   }
 
   /* Task-row delete: a soft red disc on hover, with the bin's lid lifting. */
@@ -121,7 +135,7 @@ textarea {
   }
 
   .confirm {
-    @apply m-auto w-[calc(100%-2rem)] max-w-sm overflow-hidden rounded-2xl border border-line bg-surface p-0 text-foreground shadow-2xl;
+    @apply m-auto w-[calc(100%-2rem)] max-w-sm overflow-hidden rounded-2xl border border-line bg-surface p-0 text-foreground shadow-float;
   }
 
   .confirm::backdrop {
@@ -131,7 +145,7 @@ textarea {
 
   /* Click-to-edit text: looks like text, hints it is editable on hover. */
   .editable {
-    @apply -mx-1 max-w-full rounded px-1 text-left break-words hover:bg-line/40;
+    @apply -mx-1 max-w-full rounded px-1 text-left break-words hover:bg-line/40 transition-colors motion-reduce:transition-none;
   }
 
   .editable-empty {
@@ -158,7 +172,7 @@ textarea {
 
   /* Small icon button that shows on header hover, e.g. rename a list. */
   .icon-quiet {
-    @apply grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-line/40 hover:text-foreground;
+    @apply grid size-8 shrink-0 place-items-center rounded-full text-muted hover:bg-line/60 hover:text-foreground transition-colors motion-reduce:transition-none;
   }
 
   @media (hover: hover) {
@@ -173,7 +187,7 @@ textarea {
 
   /* Deadline picker (tasks/date-picker.tsx). */
   .picker {
-    @apply absolute top-full z-30 mt-2 flex w-72 flex-col gap-3 rounded-2xl border border-line bg-surface p-3 text-base font-normal text-foreground not-italic shadow-[0_16px_40px_-16px_rgb(22_48_42/0.45)];
+    @apply absolute top-full z-30 mt-2 flex w-72 flex-col gap-3 rounded-2xl border border-line bg-surface p-3 text-base font-normal text-foreground not-italic shadow-float;
   }
 
   @media (width < 40rem) {
@@ -183,11 +197,11 @@ textarea {
   }
 
   .picker-nav {
-    @apply grid size-8 place-items-center rounded-full text-muted hover:bg-line/50 hover:text-foreground;
+    @apply grid size-8 place-items-center rounded-full text-muted hover:bg-line/60 hover:text-foreground transition-colors motion-reduce:transition-none;
   }
 
   .picker-day {
-    @apply grid aspect-square place-items-center rounded-full text-sm tabular-nums hover:bg-line/50;
+    @apply grid aspect-square place-items-center rounded-full text-sm tabular-nums hover:bg-line/60 transition-colors motion-reduce:transition-none;
   }
 
   .picker-day[data-outside] {
@@ -195,7 +209,7 @@ textarea {
   }
 
   .picker-day[aria-current='date'] {
-    @apply font-bold text-mark;
+    @apply font-bold ring-2 ring-mark ring-inset;
   }
 
   .picker-day[aria-pressed='true'] {
@@ -203,7 +217,7 @@ textarea {
   }
 
   .picker-chip {
-    @apply rounded-full border border-line px-3 py-1 text-xs font-medium text-muted hover:border-foreground hover:text-foreground;
+    @apply rounded-full border border-line px-3 py-1 text-xs font-medium text-muted hover:border-foreground hover:text-foreground transition-colors motion-reduce:transition-none;
   }
 
   .picker-time {
@@ -215,7 +229,7 @@ textarea {
   }
 
   .picker-ok {
-    @apply grid size-9 place-items-center rounded-full bg-mark text-foreground transition hover:brightness-105 active:scale-90 disabled:opacity-40 motion-reduce:transition-none;
+    @apply grid size-9 place-items-center rounded-full bg-mark text-(--on-mark) transition hover:brightness-105 active:scale-90 disabled:opacity-50 motion-reduce:transition-none;
   }
 
   .section {
@@ -224,21 +238,61 @@ textarea {
 
   /* The inbox is tinted marigold: it is where new work lands. */
   .inbox {
-    --surface: #fff8e6;
-    --background: #fdefc8;
-    --line: #f0dca6;
-    --muted: #6b5c3a;
+    --surface: light-dark(#f2e9d0, #241f12);
+    --background: light-dark(#e9d9ae, #1c180d);
+    --line: light-dark(#d9c48c, #463b1f);
+    --muted: light-dark(#65562f, #bfae88);
   }
 
   /* The one loud moment: the list you are dragging a task over. */
+  .drop-zone {
+    transition:
+      border-color 180ms ease-out,
+      background-color 180ms ease-out,
+      box-shadow 180ms ease-out,
+      opacity 180ms ease-out;
+  }
+
   .drop-zone[data-over] {
     border-color: var(--mark);
     background: color-mix(in srgb, var(--mark) 12%, var(--surface));
-    box-shadow: 0 0 0 2px var(--mark);
+    box-shadow:
+      0 0 0 2px var(--mark),
+      0 12px 32px -18px var(--mark);
   }
 
   .drop-zone[aria-busy='true'] {
     @apply opacity-70;
+  }
+
+  /* Drag image: the row is styled as a lifted card only while the browser
+     snapshots it (tasklist-forms.tsx). */
+  .task-row[data-lifting] {
+    @apply bg-surface ring-1 ring-mark transition-none;
+  }
+
+  /* What stays behind while dragging: an empty dashed slot. */
+  .task-row[data-dragging] {
+    @apply outline-2 -outline-offset-2 outline-line outline-dashed;
+    background: color-mix(in srgb, var(--line) 30%, transparent);
+  }
+
+  .task-row[data-dragging] > * {
+    @apply opacity-0;
+  }
+
+  /* A task just dropped into this list settles in with a marigold flash. */
+  .task-row[data-landed] {
+    animation: task-land 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .drop-zone {
+      transition: none;
+    }
+    .task-row[data-landed] {
+      animation: none;
+    }
   }
 
   .section-head {
@@ -246,23 +300,23 @@ textarea {
   }
 
   .task-row {
-    @apply flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-background;
+    @apply flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-line/40 transition-colors motion-reduce:transition-none;
   }
 
   .grip {
-    @apply cursor-grab text-line hover:text-muted active:cursor-grabbing;
+    @apply cursor-grab text-muted/50 hover:text-muted active:cursor-grabbing transition-colors motion-reduce:transition-none;
   }
 
   .check {
-    @apply grid size-5 place-items-center rounded-full border-2 border-muted text-transparent hover:border-foreground;
+    @apply grid size-5 place-items-center rounded-full border-2 border-muted text-transparent hover:border-foreground transition-colors motion-reduce:transition-none;
   }
 
   .check[aria-pressed='true'] {
-    @apply border-mark bg-mark text-surface;
+    @apply border-mark bg-mark text-(--on-mark);
   }
 
   .switch-label {
-    @apply flex cursor-pointer items-center gap-2 text-sm text-muted select-none hover:text-foreground;
+    @apply flex cursor-pointer items-center gap-2 text-sm text-muted select-none hover:text-foreground transition-colors motion-reduce:transition-none;
   }
 
   /* A small pill switch; the knob slides over and the track turns marigold. */
@@ -271,7 +325,7 @@ textarea {
   }
 
   .switch::before {
-    @apply absolute top-0.5 left-0.5 size-3 rounded-full bg-white shadow-sm transition-transform content-[''] motion-reduce:transition-none;
+    @apply absolute top-0.5 left-0.5 size-3 rounded-full bg-(--knob) shadow-sm transition-transform content-[''] motion-reduce:transition-none;
   }
 
   .switch:checked {
@@ -283,9 +337,68 @@ textarea {
   }
 }
 
+/* Touch screens: small controls get an invisible 44px tap area around them. */
+@media (pointer: coarse) {
+  :is(.switch, .check, .icon-quiet, .icon-danger, .picker-nav, .profile-btn) {
+    position: relative;
+  }
+
+  :is(
+    .switch,
+    .check,
+    .icon-quiet,
+    .icon-danger,
+    .picker-nav,
+    .profile-btn
+  )::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Top bar of the tasks page, with the profile menu (tasks/page.tsx). */
+@layer components {
+  .navbar {
+    @apply sticky top-0 z-20 border-b border-line bg-background/85 backdrop-blur;
+  }
+
+  .profile-btn {
+    @apply grid size-9 place-items-center rounded-full border border-line bg-surface text-muted hover:text-foreground transition-colors motion-reduce:transition-none;
+    anchor-name: --profile;
+  }
+
+  /* A popover, so Esc and clicking outside close it with no JS. */
+  .menu {
+    @apply w-44 rounded-2xl border border-line bg-surface p-1.5 text-foreground shadow-float;
+    position-anchor: --profile;
+    inset: auto;
+    top: anchor(bottom);
+    right: anchor(right);
+    margin: 0.5rem 0 0;
+  }
+
+  .menu-item {
+    @apply flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-line/40 transition-colors motion-reduce:transition-none;
+  }
+}
+
 /* Login and signup: brand panel beside the form (auth-shell.tsx). */
 @layer components {
+  /* The marigold panel and its demo card stay light in both themes. */
   .auth-panel {
+    color-scheme: light;
+    /* Literal values: Lightning CSS compiles light-dark() so it resolves on
+       :root, so color-scheme here alone would not switch them. */
+    --foreground: var(--on-mark);
+    --surface: #eef0ea;
+    --muted: #56665e;
+    --line: #cbd3c9;
+    --mark: #e3a21a;
     background: var(--mark);
     color: var(--foreground);
   }
@@ -300,7 +413,7 @@ textarea {
 
   /* The tick demo: one row of a small list ticks itself off, on a loop. */
   .demo-tab {
-    @apply rounded-xl bg-surface p-4 shadow-[0_12px_32px_-14px_rgb(22_48_42/0.45)];
+    @apply rounded-xl bg-surface p-4 shadow-float;
   }
 
   .demo-check {
@@ -337,11 +450,27 @@ textarea {
       animation: none;
     }
     .demo-row[data-sync] .demo-check {
-      @apply border-mark bg-mark text-surface;
+      @apply border-mark bg-mark text-(--on-mark);
     }
     .demo-row[data-sync] .demo-text {
       @apply text-muted line-through;
     }
+  }
+}
+
+@keyframes task-land {
+  from {
+    transform: translateY(-6px) scale(0.98);
+    opacity: 0;
+    background: color-mix(in srgb, var(--mark) 30%, transparent);
+  }
+  40% {
+    transform: none;
+    opacity: 1;
+    background: color-mix(in srgb, var(--mark) 22%, transparent);
+  }
+  to {
+    background: transparent;
   }
 }
 
@@ -357,7 +486,7 @@ textarea {
   85% {
     border-color: var(--mark);
     background: var(--mark);
-    color: var(--surface);
+    color: var(--on-mark);
   }
   92%,
   100% {
