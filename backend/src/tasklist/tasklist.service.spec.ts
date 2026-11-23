@@ -170,14 +170,15 @@ describe('TasklistService', () => {
       ConflictException,
     );
     expect(prisma.task.count).toHaveBeenCalledWith({
-      where: { taskListId: 10 },
+      where: { taskListId: 10, NOT: { id: 20 } },
     });
     expect(prisma.task.update).not.toHaveBeenCalled();
     expect(gateway.tasklistUpdated).not.toHaveBeenCalled();
   });
 
   it('still accepts a task that is already in the full list', async () => {
-    prisma.task.count.mockResolvedValue(MAX_TASKS_PER_LIST);
+    // The list holds the maximum, this task included: the others are one fewer.
+    prisma.task.count.mockResolvedValue(MAX_TASKS_PER_LIST - 1);
     await expect(service.addTask(10, 21, owner)).resolves.toMatchObject({
       id: 21,
       taskListId: 10,

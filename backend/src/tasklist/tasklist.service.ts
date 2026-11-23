@@ -101,10 +101,12 @@ export class TasklistService {
     const moved = await this.prisma.$transaction(async (tx) => {
       // Locks the list row, so two concurrent adds can't both pass the count.
       await tx.$queryRaw`SELECT 1 FROM "TaskList" WHERE id = ${id} FOR UPDATE`;
+      // The others, counted under the lock: whether this task is in the list
+      // was read before it, and may have changed since.
       if (
-        task.taskListId !== id &&
-        (await tx.task.count({ where: { taskListId: id } })) >=
-          MAX_TASKS_PER_LIST
+        (await tx.task.count({
+          where: { taskListId: id, NOT: { id: taskId } },
+        })) >= MAX_TASKS_PER_LIST
       ) {
         throw new ConflictException(
           `Task list ${id} already has ${MAX_TASKS_PER_LIST} tasks`,

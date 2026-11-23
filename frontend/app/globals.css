@@ -75,7 +75,7 @@ body {
   }
 
   .btn-delete {
-    @apply rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 disabled:opacity-60;
+    @apply rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 dark:text-background disabled:opacity-60;
   }
 
   /* Task-row delete: a soft red disc on hover, with the bin's lid lifting. */
