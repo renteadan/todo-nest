@@ -76,7 +76,10 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npx playwright install --with-deps chromium
+      # Browser only, no --with-deps: the runner image ships Google Chrome, so
+      # Chromium's system libraries are already there, and the apt step that
+      # --with-deps adds took ~4 minutes on a slow mirror.
+      - run: npx playwright install chromium
       - run: npm test
       - if: failure()
         uses: actions/upload-artifact@v7
