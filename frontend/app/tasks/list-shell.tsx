@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
   useTransition,
 } from 'react';
+import { reportError } from './action-error';
 import { InlineInput } from './inline-edit';
 
 type Prefs = { open: boolean; showDone: boolean };
@@ -58,7 +59,7 @@ export function ListShell({
   storageKey: string;
   title: string;
   /** Saves a new name; lists that can't be renamed (the Inbox) leave it out. */
-  rename?: (title: string) => Promise<void>;
+  rename?: (title: string) => Promise<string | undefined>;
   titleClassName: string;
   collapsible: boolean;
   progress: React.ReactNode;
@@ -87,7 +88,7 @@ export function ListShell({
               onCommit={(v) =>
                 startTransition(async () => {
                   setShownTitle(v);
-                  await rename(v);
+                  reportError(await rename(v));
                 })
               }
               onDone={() => setEditing(false)}

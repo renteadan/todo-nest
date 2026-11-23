@@ -1,12 +1,12 @@
 import { cache, Suspense } from 'react';
 import { logout } from '../login/actions';
-import { authFetch } from '../lib/session';
+import { authFetch, currentUserId } from '../lib/session';
+import { ActionErrors } from './action-error';
 import {
   deleteTask,
   deleteTasklist,
   renameTask,
   renameTasklist,
-  setCompleted,
   setTaskDeadline,
   setTaskDetails,
 } from './actions';
@@ -15,7 +15,13 @@ import { CreateTaskForm } from './create-task-form';
 import { EditableDateTime, EditableText } from './inline-edit';
 import { ListShell } from './list-shell';
 import { LiveUpdates } from './live-updates';
-import { CreateTasklistForm, DraggableTask, DropZone } from './tasklist-forms';
+import {
+  CompleteButton,
+  CreateTasklistForm,
+  DraggableTask,
+  DropZone,
+  MoveTo,
+} from './tasklist-forms';
 
 type Task = {
   id: number;
@@ -25,9 +31,10 @@ type Task = {
   /** UTC ISO time. */
   deadline: string | null;
   taskListId: number | null;
+  userId: number;
 };
 
-type Tasklist = { id: number; title: string };
+type Tasklist = { id: number; title: string; userId: number };
 
 export default function TasksPage() {
   const loading = <p className="text-muted">Loading…</p>;
@@ -52,26 +59,32 @@ export default function TasksPage() {
       <Suspense fallback={loading}>
         <Lists />
       </Suspense>
+      <ActionErrors />
     </main>
   );
 }
 
-/** Both columns need the same data: cache() makes it one fetch per request. */
+/**
+ * Both columns need the same data: cache() makes it one fetch per request.
+ * Only the user's own: admins get everyone's, but only owners change lists.
+ */
 const loadBoard = cache(async () => {
-  const [res, listsRes] = await Promise.all([
+  const [res, listsRes, userId] = await Promise.all([
     authFetch('/task'),
     authFetch('/tasklist'),
+    currentUserId(),
   ]);
   if (!res.ok) throw new Error(`Loading tasks failed (${res.status})`);
   if (!listsRes.ok)
     throw new Error(`Loading lists failed (${listsRes.status})`);
   const tasks: Task[] = await res.json();
   const lists: Tasklist[] = await listsRes.json();
-  return { tasks, lists };
+  const mine = (r: { userId: number }) => r.userId === userId;
+  return { tasks: tasks.filter(mine), lists: lists.filter(mine) };
 });
 
 async function Inbox() {
-  const { tasks } = await loadBoard();
+  const { tasks, lists } = await loadBoard();
   return (
     <>
       {/* Here, not in the static shell, so the env var is read at request time. */}
@@ -82,6 +95,7 @@ async function Inbox() {
         title="Inbox"
         listId={null}
         tasks={tasks.filter((t) => t.taskListId === null)}
+        lists={lists}
       />
     </>
   );
@@ -102,6 +116,7 @@ async function Lists() {
           title={list.title}
           listId={list.id}
           tasks={tasks.filter((t) => t.taskListId === list.id)}
+          lists={lists}
         />
       ))}
     </div>
@@ -113,10 +128,13 @@ function Section({
   title,
   listId,
   tasks,
+  lists,
 }: {
   title: string;
   listId: number | null;
   tasks: Task[];
+  /** Every list, for the rows' "move to" menu. */
+  lists: Tasklist[];
 }) {
   const inbox = listId === null;
   return (
@@ -145,6 +163,7 @@ function Section({
       >
         <TaskItems
           tasks={tasks}
+          lists={lists}
           empty={
             inbox
               ? 'Nothing here. New tasks land in the inbox.'
@@ -165,7 +184,15 @@ function Progress({ tasks }: { tasks: Task[] }) {
   );
 }
 
-function TaskItems({ tasks, empty }: { tasks: Task[]; empty: string }) {
+function TaskItems({
+  tasks,
+  lists,
+  empty,
+}: {
+  tasks: Task[];
+  lists: Tasklist[];
+  empty: string;
+}) {
   return (
     <div className="px-2 pb-2">
       {tasks.length === 0 ? (
@@ -173,7 +200,7 @@ function TaskItems({ tasks, empty }: { tasks: Task[]; empty: string }) {
       ) : (
         <ul className="flex flex-col">
           {tasks.map((task) => (
-            <TaskRow key={task.id} task={task} />
+            <TaskRow key={task.id} task={task} lists={lists} />
           ))}
         </ul>
       )}
@@ -181,7 +208,7 @@ function TaskItems({ tasks, empty }: { tasks: Task[]; empty: string }) {
   );
 }
 
-function TaskRow({ task }: { task: Task }) {
+function TaskRow({ task, lists }: { task: Task; lists: Tasklist[] }) {
   const done = Boolean(task.completedAt);
   return (
     <DraggableTask taskId={task.id} fromListId={task.taskListId} done={done}>
@@ -193,22 +220,16 @@ function TaskRow({ task }: { task: Task }) {
           ])}
         </svg>
       </span>
-      <form action={setCompleted.bind(null, task.id, !done)}>
-        <button
-          aria-pressed={done}
-          aria-label={`${done ? 'Reopen' : 'Complete'} ${task.title}`}
-          className="check"
-        >
-          <svg viewBox="0 0 16 16" aria-hidden className="size-3">
-            <path
-              d="M3 8.5l3 3 7-7"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-            />
-          </svg>
-        </button>
-      </form>
+      <CompleteButton taskId={task.id} done={done} title={task.title}>
+        <svg viewBox="0 0 16 16" aria-hidden className="size-3">
+          <path
+            d="M3 8.5l3 3 7-7"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+          />
+        </svg>
+      </CompleteButton>
       <div className="flex min-w-0 flex-1 flex-col items-start">
         <EditableText
           value={task.title}
@@ -235,6 +256,12 @@ function TaskRow({ task }: { task: Task }) {
           label={`Deadline of ${task.title}`}
         />
       </div>
+      <MoveTo
+        taskId={task.id}
+        fromListId={task.taskListId}
+        title={task.title}
+        lists={lists}
+      />
       <ConfirmDelete
         action={deleteTask.bind(null, task.id)}
         title={`Delete “${task.title}”?`}

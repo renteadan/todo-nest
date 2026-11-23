@@ -1,7 +1,8 @@
 'use client';
 
 import { useActionState, useState, useTransition } from 'react';
-import { createTasklist, moveTask } from './actions';
+import { reportError } from './action-error';
+import { createTasklist, moveTask, setCompleted } from './actions';
 import { LimitedInput } from './limited-input';
 
 const TASK_MIME = 'application/x-task';
@@ -104,7 +105,9 @@ export function DropZone({
         const { taskId, fromListId } = JSON.parse(
           e.dataTransfer.getData(TASK_MIME),
         ) as { taskId: number; fromListId: number | null };
-        startTransition(() => moveTask(taskId, fromListId, listId));
+        startTransition(async () =>
+          reportError(await moveTask(taskId, fromListId, listId)),
+        );
       }}
       data-over={over || undefined}
       aria-busy={pending}
@@ -112,5 +115,72 @@ export function DropZone({
     >
       {children}
     </div>
+  );
+}
+
+/** Completes the task, or reopens it when it is done. */
+export function CompleteButton({
+  taskId,
+  done,
+  title,
+  children,
+}: {
+  taskId: number;
+  done: boolean;
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() =>
+        startTransition(async () =>
+          reportError(await setCompleted(taskId, !done)),
+        )
+      }
+      aria-pressed={done}
+      aria-label={`${done ? 'Reopen' : 'Complete'} ${title}`}
+      className="check"
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Moves a task between lists without dragging, for keyboards and screen readers. */
+export function MoveTo({
+  taskId,
+  fromListId,
+  title,
+  lists,
+}: {
+  taskId: number;
+  fromListId: number | null;
+  title: string;
+  lists: { id: number; title: string }[];
+}) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <select
+      value={fromListId ?? ''}
+      disabled={pending}
+      aria-label={`List of ${title}`}
+      onChange={(e) => {
+        const to = e.target.value ? Number(e.target.value) : null;
+        startTransition(async () =>
+          reportError(await moveTask(taskId, fromListId, to)),
+        );
+      }}
+      className="move-to"
+    >
+      <option value="">Inbox</option>
+      {lists.map((list) => (
+        <option key={list.id} value={list.id}>
+          {list.title}
+        </option>
+      ))}
+    </select>
   );
 }

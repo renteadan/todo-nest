@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
+import { reportError } from './action-error';
 
 /**
  * A delete button that asks first, in a modal <dialog>. The dialog is portaled
@@ -16,7 +17,7 @@ export function ConfirmDelete({
   className,
   children,
 }: {
-  action: () => Promise<void>;
+  action: () => Promise<string | undefined>;
   title: string;
   message: string;
   /** Accessible name of the trigger, for icon-only buttons. */
@@ -65,7 +66,7 @@ export function ConfirmDelete({
                 disabled={pending}
                 onClick={() =>
                   startTransition(async () => {
-                    await action();
+                    reportError(await action());
                     setOpen(false);
                   })
                 }

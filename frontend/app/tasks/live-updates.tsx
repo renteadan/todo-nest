@@ -13,7 +13,13 @@ export function LiveUpdates({ url }: { url: string }) {
     const socket = io(url, {
       transports: ['websocket'],
       // Called on every (re)connect, so each handshake gets a fresh token.
-      auth: (cb) => void getAccessToken().then((token) => cb({ token })),
+      // A failed token fetch still answers: the server then drops the socket
+      // and the retry below tries again, instead of the handshake hanging.
+      auth: (cb) =>
+        void getAccessToken().then(
+          (token) => cb({ token }),
+          () => cb({}),
+        ),
     });
     // Events sent before this (re)connect were missed, including those between
     // the page render and the first connect: catch up.

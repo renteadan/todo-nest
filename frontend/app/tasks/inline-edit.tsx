@@ -3,10 +3,12 @@
 import {
   useId,
   useOptimistic,
+  useRef,
   useState,
   useSyncExternalStore,
   useTransition,
 } from 'react';
+import { reportError } from './action-error';
 import { localToUtc, utcToLocal } from './local-time';
 
 type Limits = {
@@ -51,8 +53,11 @@ export function InlineInput({
   const [value, setValue] = useState(initial);
   const warningId = useId();
   const error = problem(value, limits);
+  // Esc unmounts the focused input, which fires blur: don't save then.
+  const cancelled = useRef(false);
 
   const commit = () => {
+    if (cancelled.current) return;
     if (!error && value !== initial) onCommit(value);
     onDone();
   };
@@ -73,6 +78,7 @@ export function InlineInput({
           if (e.key === 'Enter' && !error) e.currentTarget.blur();
           if (e.key === 'Escape') {
             e.preventDefault();
+            cancelled.current = true;
             onDone();
           }
         }}
@@ -102,7 +108,7 @@ export function EditableDateTime({
   label,
 }: {
   value: string;
-  save: (utc: string) => Promise<void>;
+  save: (utc: string) => Promise<string | undefined>;
   label: string;
 }) {
   const [shown, setShown] = useOptimistic(value);
@@ -126,7 +132,7 @@ export function EditableDateTime({
         if (v === local || !e.currentTarget.validity.valid) return;
         startTransition(async () => {
           setShown(localToUtc(v));
-          await save(localToUtc(v));
+          reportError(await save(localToUtc(v)));
         });
       }}
       onKeyDown={(e) => {
@@ -150,7 +156,7 @@ export function EditableText({
   ...limits
 }: Limits & {
   value: string;
-  save: (value: string) => Promise<void>;
+  save: (value: string) => Promise<string | undefined>;
   /** e.g. "Task name": the trigger is "Edit task name: …". */
   label: string;
   /** Shown (faintly, on row hover) when the value is empty. */
@@ -172,7 +178,7 @@ export function EditableText({
         onCommit={(v) =>
           startTransition(async () => {
             setShown(v);
-            await save(v);
+            reportError(await save(v));
           })
         }
         onDone={() => setEditing(false)}

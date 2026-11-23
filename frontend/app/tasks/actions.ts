@@ -1,6 +1,7 @@
 'use server';
 
 import { refresh } from 'next/cache';
+import { unstable_rethrow } from 'next/navigation';
 import { postJson } from '../lib/backend';
 import { authFetch, requireToken } from '../lib/session';
 
@@ -26,7 +27,7 @@ export async function createTask(
 
 /** Completes the task, or undoes the completion when `done` is false. */
 export async function setCompleted(id: number, done: boolean) {
-  await patch(`/task/${id}`, { completed: done });
+  return patch(`/task/${id}`, { completed: done });
 }
 
 export async function createTasklist(
@@ -43,65 +44,79 @@ export async function createTasklist(
   return {};
 }
 
-async function patch(path: string, body: unknown) {
-  const res = await authFetch(path, {
+/**
+ * Sends a change; returns the backend's message when it fails, so the browser
+ * can show it (a thrown error would replace the page, its message redacted).
+ * Refreshes either way: a failure often means this page was out of date.
+ */
+async function send(path: string, init: RequestInit) {
+  const res = await authFetch(path, init).catch((e) => {
+    unstable_rethrow(e); // authFetch's redirect('/login')
+    return null;
+  });
+  refresh();
+  if (!res) return 'Could not reach the server. Try again later.';
+  if (res.ok) return undefined;
+  const json = await res.json().catch(() => ({}));
+  // Nest errors carry `message` as a string or, for validation, a string[].
+  return (
+    [json.message].flat().join(', ') || `Something went wrong (${res.status}).`
+  );
+}
+
+function patch(path: string, body: unknown) {
+  return send(path, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Saving failed (${res.status})`);
-  refresh();
 }
 
 // The backend validates every field again; these only pick which one to send.
 export async function renameTask(id: number, title: string) {
-  await patch(`/task/${id}`, { title });
+  return patch(`/task/${id}`, { title });
 }
 
 /** Empty details are stored as none. */
 export async function setTaskDetails(id: number, details: string) {
-  await patch(`/task/${id}`, { description: details.trim() ? details : null });
+  return patch(`/task/${id}`, {
+    description: details.trim() ? details : null,
+  });
 }
 
 /** `deadline` is a UTC ISO time, converted in the browser; empty clears it. */
 export async function setTaskDeadline(id: number, deadline: string) {
-  await patch(`/task/${id}`, { deadline: deadline || null });
+  return patch(`/task/${id}`, { deadline: deadline || null });
 }
 
 export async function renameTasklist(id: number, title: string) {
-  await patch(`/tasklist/${id}`, { title });
+  return patch(`/tasklist/${id}`, { title });
 }
 
 /** Deletes the task, completed or not. */
 export async function deleteTask(id: number) {
-  const res = await authFetch(`/task/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`Deleting the task failed (${res.status})`);
-  refresh();
+  return send(`/task/${id}`, { method: 'DELETE' });
 }
 
 /** Deletes the list; its tasks stay, outside any list. */
 export async function deleteTasklist(id: number) {
-  const res = await authFetch(`/tasklist/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`Deleting the list failed (${res.status})`);
-  refresh();
+  return send(`/tasklist/${id}`, { method: 'DELETE' });
 }
 
-/** Moves the task into `toListId`, or out of `fromListId` when it is null. */
+/**
+ * Moves the task into `toListId`, or out of `fromListId` when it is null.
+ * `fromListId` can be stale (moved in another tab): the backend then says the
+ * task isn't in that list, and the refresh shows where it is.
+ */
 export async function moveTask(
   taskId: number,
   fromListId: number | null,
   toListId: number | null,
 ) {
   if (toListId === fromListId) return;
-  const res = toListId
-    ? await authFetch(`/tasklist/${toListId}/task/${taskId}`, {
-        method: 'POST',
-      })
-    : await authFetch(`/tasklist/${fromListId}/task/${taskId}`, {
-        method: 'DELETE',
-      });
-  if (!res.ok) throw new Error(`Moving the task failed (${res.status})`);
-  refresh();
+  return toListId
+    ? send(`/tasklist/${toListId}/task/${taskId}`, { method: 'POST' })
+    : send(`/tasklist/${fromListId}/task/${taskId}`, { method: 'DELETE' });
 }
 
 /**
