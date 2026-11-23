@@ -3,11 +3,11 @@
 /* Follows the system theme; the navbar switch pins one (theme-switch.tsx). */
 :root {
   color-scheme: light dark;
-  --background: light-dark(#eaede6, #0e1613);
+  --background: light-dark(#e1e5dc, #0e1613);
   --foreground: light-dark(#16302a, #e4ece6);
-  --surface: light-dark(#f5f6f1, #16211d);
-  --muted: light-dark(#5d6e66, #93a69c);
-  --line: light-dark(#d5dcd3, #2a3832);
+  --surface: light-dark(#eef0ea, #16211d);
+  --muted: light-dark(#56665e, #93a69c);
+  --line: light-dark(#cbd3c9, #2a3832);
   --mark: light-dark(#e3a21a, #f0b232);
   --danger: light-dark(#b4321f, #e0553e);
   /* Text on marigold stays dark in both themes. */
@@ -234,10 +234,10 @@ textarea {
 
   /* The inbox is tinted marigold: it is where new work lands. */
   .inbox {
-    --surface: light-dark(#f8f0da, #241f12);
-    --background: light-dark(#f0e2bc, #1c180d);
-    --line: light-dark(#e3d09c, #463b1f);
-    --muted: light-dark(#6b5c3a, #bfae88);
+    --surface: light-dark(#f2e9d0, #241f12);
+    --background: light-dark(#e9d9ae, #1c180d);
+    --line: light-dark(#d9c48c, #463b1f);
+    --muted: light-dark(#65562f, #bfae88);
   }
 
   /* The one loud moment: the list you are dragging a task over. */
@@ -367,9 +367,9 @@ textarea {
     /* Literal values: Lightning CSS compiles light-dark() so it resolves on
        :root, so color-scheme here alone would not switch them. */
     --foreground: var(--on-mark);
-    --surface: #f5f6f1;
-    --muted: #5d6e66;
-    --line: #d5dcd3;
+    --surface: #eef0ea;
+    --muted: #56665e;
+    --line: #cbd3c9;
     --mark: #e3a21a;
     background: var(--mark);
     color: var(--foreground);
