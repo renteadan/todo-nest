@@ -54,9 +54,9 @@ The two apps default to the same port, so give the API another one (`PORT` in `b
 
 ## Checks
 
-Pull requests run [ci.yml](.github/workflows/ci.yml). It runs Prettier, lint, the backend unit tests and both builds. `main` is protected: changes go in through pull requests with passing checks, and nothing pushes to it directly.
+Pull requests run [ci.yml](.github/workflows/ci.yml). It runs Prettier, lint, the unit tests and both builds. `main` is protected: changes go in through pull requests with passing checks, and nothing pushes to it directly.
 
-Locally, run `npm run format:check`, `npm run lint` and `npm run build` in each app. The backend also has `npm test` and `npm run test:e2e`.
+Locally, run `npm run format:check`, `npm run lint`, `npm test` and `npm run build` in each app. The backend also has `npm run test:e2e`.
 
 ## Deployment
 

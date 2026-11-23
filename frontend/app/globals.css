@@ -145,6 +145,8 @@ textarea {
       @apply sr-only;
     }
     .task-row:hover .editable-empty,
+    /* Keeps the open picker anchored when the pointer leaves the row. */
+    .task-row :has(> .picker) > .editable-empty,
     .editable-empty:focus-visible {
       @apply not-sr-only;
     }

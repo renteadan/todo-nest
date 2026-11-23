@@ -7,15 +7,16 @@ The API for the todo app: NestJS, Prisma 7 with Postgres, JWT auth, and live upd
 | Path | What it does |
 |---|---|
 | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all` | Accounts and sessions. Login returns a short-lived access token and a rotating refresh token. |
-| `GET` / `PATCH` / `DELETE /user/:id` | Your own user. |
+| `GET /user/:id` | Your own account. |
+| `GET /user`, `PATCH` / `DELETE /user/:id` | Admins only: list, update and delete users. |
 | `/tasklist` | CRUD for your task lists. `POST` / `DELETE /tasklist/:id/task/:taskId` moves a task into or out of a list. A list holds at most 50 tasks. |
 | `/task` | CRUD for your tasks: title, details, deadline, done. Tasks with no list are the Inbox. |
 | `GET /health/live`, `/health/ready` | Probes. `ready` also checks Postgres. |
 | `/socket.io/` | Live task events for the signed-in user (WebSocket transport only). |
 
-Every resource belongs to one user, and nobody else can read or change it.
+Every task and list belongs to one user. Only that user can read or change it, except admins, who can do anything.
 
-The schema is in [src/prisma/schema.prisma](src/prisma/schema.prisma). Migrations are in [prisma/migrations](prisma/migrations).
+The schema is in [src/prisma/schema.prisma](src/prisma/schema.prisma). Migrations are in [src/prisma/migrations](src/prisma/migrations).
 
 ## Environment
 

@@ -29,6 +29,7 @@ Put local values in `.env.local`.
 npm install
 npm run dev           # http://localhost:3000
 npm run lint          # ESLint
+npm test              # unit tests (node --test)
 npm run format:check  # Prettier
 npm run build && npm start
 ```
