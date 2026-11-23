@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { authFetch, currentUserId } from './lib/session';
 import { logout } from './login/actions';
+import { MenuLink } from './menu-link';
 import { ThemeSwitch } from './theme-switch';
 
 /** Top bar of the logged-in pages: app name, theme switch, profile menu. */
@@ -45,14 +46,18 @@ export function Navbar() {
   );
 }
 
-/** Shown to admins only. The backend still guards /admin itself. */
+/**
+ * Admins switch between the tasks and admin pages here; each link is hidden
+ * on its own page. The backend still guards /admin itself.
+ */
 async function AdminLink() {
   const res = await authFetch(`/user/${await currentUserId()}`);
   if (!res.ok) return null;
   const { role } = (await res.json()) as { role: string };
   return role === 'ADMIN' ? (
-    <Link href="/admin" className="menu-item">
-      Admin
-    </Link>
+    <>
+      <MenuLink href="/tasks">Tasks</MenuLink>
+      <MenuLink href="/admin">Admin</MenuLink>
+    </>
   ) : null;
 }
