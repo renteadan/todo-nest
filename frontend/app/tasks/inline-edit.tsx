@@ -9,6 +9,7 @@ import {
   useTransition,
 } from 'react';
 import { reportError } from './action-error';
+import { DateTimePicker } from './date-picker';
 import { localToUtc, utcToLocal } from './local-time';
 
 type Limits = {
@@ -99,8 +100,7 @@ const noSubscribe = () => () => {};
 
 /**
  * A task's deadline: `value` and what `save` gets are UTC ISO times (or empty),
- * shown in the browser's local time. Saves when the field is left or on Enter,
- * not on every change: typing a year passes through years like 0002.
+ * shown in the browser's local time. Saves when the picker's ✓ is pressed.
  */
 export function EditableDateTime({
   value,
@@ -120,25 +120,21 @@ export function EditableDateTime({
     () => '',
   );
 
+  const commit = (utc: string) =>
+    startTransition(async () => {
+      setShown(utc);
+      reportError(await save(utc));
+    });
+
   return (
-    <input
-      // Remounts when the value changes: after hydration, or from another tab.
-      key={local}
-      type="datetime-local"
-      defaultValue={local}
-      aria-label={label}
-      onBlur={(e) => {
-        const v = e.currentTarget.value;
-        if (v === local || !e.currentTarget.validity.valid) return;
-        startTransition(async () => {
-          setShown(localToUtc(v));
-          reportError(await save(localToUtc(v)));
-        });
+    <DateTimePicker
+      value={local}
+      label={label}
+      placeholder="Add deadline"
+      onChange={(v) => {
+        if (v !== local) commit(localToUtc(v));
       }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') e.currentTarget.blur();
-      }}
-      className={`editable text-sm text-muted ${shown ? '' : 'editable-empty'}`}
+      triggerClassName={`editable text-sm text-muted ${shown ? '' : 'editable-empty'}`}
     />
   );
 }

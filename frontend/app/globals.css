@@ -164,9 +164,51 @@ textarea {
       @apply opacity-0;
     }
     .section-head:hover .icon-quiet,
+    .task-row:hover .icon-quiet,
     .icon-quiet:focus-visible {
       @apply opacity-100;
     }
+  }
+
+  /* Deadline picker (tasks/date-picker.tsx). */
+  .picker {
+    @apply absolute top-full z-30 mt-2 flex w-72 flex-col gap-3 rounded-2xl border border-line bg-surface p-3 text-base font-normal text-foreground not-italic shadow-[0_16px_40px_-16px_rgb(22_48_42/0.45)];
+  }
+
+  .picker-nav {
+    @apply grid size-8 place-items-center rounded-full text-muted hover:bg-line/50 hover:text-foreground;
+  }
+
+  .picker-day {
+    @apply grid aspect-square place-items-center rounded-full text-sm tabular-nums hover:bg-line/50;
+  }
+
+  .picker-day[data-outside] {
+    @apply text-muted/50;
+  }
+
+  .picker-day[aria-current='date'] {
+    @apply font-bold text-mark;
+  }
+
+  .picker-day[aria-pressed='true'] {
+    @apply bg-foreground font-semibold text-background;
+  }
+
+  .picker-chip {
+    @apply rounded-full border border-line px-3 py-1 text-xs font-medium text-muted hover:border-foreground hover:text-foreground;
+  }
+
+  .picker-time {
+    @apply px-2 py-1.5 text-sm tabular-nums;
+  }
+
+  .picker-time::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+
+  .picker-ok {
+    @apply grid size-9 place-items-center rounded-full bg-mark text-foreground transition hover:brightness-105 active:scale-90 disabled:opacity-40 motion-reduce:transition-none;
   }
 
   .section {

@@ -1,15 +1,19 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { createTask } from './actions';
+import { DateTimePicker } from './date-picker';
 import { LimitedInput } from './limited-input';
 import { localToUtc } from './local-time';
 
 export function CreateTaskForm() {
   const [state, action, pending] = useActionState(createTask, {});
+  const [deadline, setDeadline] = useState('');
 
   return (
     <form
+      // React resets the form after the action; follow along.
+      onReset={() => setDeadline('')}
       action={(formData) => {
         // Here, in the browser: the server action doesn't know the user's zone.
         formData.set(
@@ -44,12 +48,14 @@ export function CreateTaskForm() {
           noun="Details"
           className="flex-1 text-sm"
         />
-        <input
-          type="datetime-local"
-          name="deadlineLocal"
-          aria-label="Deadline (optional)"
-          title="Deadline (optional)"
-          className="field text-sm"
+        <input type="hidden" name="deadlineLocal" value={deadline} />
+        <DateTimePicker
+          value={deadline}
+          onChange={setDeadline}
+          label="Deadline (optional)"
+          placeholder="Deadline (optional)"
+          align="end"
+          triggerClassName={`field text-sm ${deadline ? '' : 'text-muted'}`}
         />
       </div>
       <p aria-live="polite" className="text-sm text-danger">
