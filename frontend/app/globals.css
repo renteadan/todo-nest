@@ -94,19 +94,12 @@ body {
   }
 
   /* Only hidden where hovering is possible; touch screens always show it. */
-  /* Moving without dragging; quiet like the delete button. */
-  .move-to {
-    @apply max-w-28 shrink-0 truncate rounded bg-transparent text-sm text-muted transition-opacity hover:text-foreground motion-reduce:transition-none;
-  }
-
   @media (hover: hover) {
-    .icon-danger,
-    .move-to {
+    .icon-danger {
       @apply opacity-0;
     }
-    .task-row:hover :is(.icon-danger, .move-to),
-    .icon-danger:focus-visible,
-    .move-to:focus-visible {
+    .task-row:hover .icon-danger,
+    .icon-danger:focus-visible {
       @apply opacity-100;
     }
   }

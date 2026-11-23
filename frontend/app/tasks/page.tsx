@@ -20,7 +20,6 @@ import {
   CreateTasklistForm,
   DraggableTask,
   DropZone,
-  MoveTo,
 } from './tasklist-forms';
 
 type Task = {
@@ -84,7 +83,7 @@ const loadBoard = cache(async () => {
 });
 
 async function Inbox() {
-  const { tasks, lists } = await loadBoard();
+  const { tasks } = await loadBoard();
   return (
     <>
       {/* Here, not in the static shell, so the env var is read at request time. */}
@@ -95,7 +94,6 @@ async function Inbox() {
         title="Inbox"
         listId={null}
         tasks={tasks.filter((t) => t.taskListId === null)}
-        lists={lists}
       />
     </>
   );
@@ -116,7 +114,6 @@ async function Lists() {
           title={list.title}
           listId={list.id}
           tasks={tasks.filter((t) => t.taskListId === list.id)}
-          lists={lists}
         />
       ))}
     </div>
@@ -128,13 +125,10 @@ function Section({
   title,
   listId,
   tasks,
-  lists,
 }: {
   title: string;
   listId: number | null;
   tasks: Task[];
-  /** Every list, for the rows' "move to" menu. */
-  lists: Tasklist[];
 }) {
   const inbox = listId === null;
   return (
@@ -163,7 +157,6 @@ function Section({
       >
         <TaskItems
           tasks={tasks}
-          lists={lists}
           empty={
             inbox
               ? 'Nothing here. New tasks land in the inbox.'
@@ -184,15 +177,7 @@ function Progress({ tasks }: { tasks: Task[] }) {
   );
 }
 
-function TaskItems({
-  tasks,
-  lists,
-  empty,
-}: {
-  tasks: Task[];
-  lists: Tasklist[];
-  empty: string;
-}) {
+function TaskItems({ tasks, empty }: { tasks: Task[]; empty: string }) {
   return (
     <div className="px-2 pb-2">
       {tasks.length === 0 ? (
@@ -200,7 +185,7 @@ function TaskItems({
       ) : (
         <ul className="flex flex-col">
           {tasks.map((task) => (
-            <TaskRow key={task.id} task={task} lists={lists} />
+            <TaskRow key={task.id} task={task} />
           ))}
         </ul>
       )}
@@ -208,7 +193,7 @@ function TaskItems({
   );
 }
 
-function TaskRow({ task, lists }: { task: Task; lists: Tasklist[] }) {
+function TaskRow({ task }: { task: Task }) {
   const done = Boolean(task.completedAt);
   return (
     <DraggableTask taskId={task.id} fromListId={task.taskListId} done={done}>
@@ -256,12 +241,6 @@ function TaskRow({ task, lists }: { task: Task; lists: Tasklist[] }) {
           label={`Deadline of ${task.title}`}
         />
       </div>
-      <MoveTo
-        taskId={task.id}
-        fromListId={task.taskListId}
-        title={task.title}
-        lists={lists}
-      />
       <ConfirmDelete
         action={deleteTask.bind(null, task.id)}
         title={`Delete “${task.title}”?`}

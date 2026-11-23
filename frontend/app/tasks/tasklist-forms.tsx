@@ -148,39 +148,3 @@ export function CompleteButton({
     </button>
   );
 }
-
-/** Moves a task between lists without dragging, for keyboards and screen readers. */
-export function MoveTo({
-  taskId,
-  fromListId,
-  title,
-  lists,
-}: {
-  taskId: number;
-  fromListId: number | null;
-  title: string;
-  lists: { id: number; title: string }[];
-}) {
-  const [pending, startTransition] = useTransition();
-  return (
-    <select
-      value={fromListId ?? ''}
-      disabled={pending}
-      aria-label={`List of ${title}`}
-      onChange={(e) => {
-        const to = e.target.value ? Number(e.target.value) : null;
-        startTransition(async () =>
-          reportError(await moveTask(taskId, fromListId, to)),
-        );
-      }}
-      className="move-to"
-    >
-      <option value="">Inbox</option>
-      {lists.map((list) => (
-        <option key={list.id} value={list.id}>
-          {list.title}
-        </option>
-      ))}
-    </select>
-  );
-}
