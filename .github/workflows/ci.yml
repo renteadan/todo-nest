@@ -46,3 +46,44 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  # Browser tests (e2e/) against the whole stack, as docker compose runs it.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: e2e
+    steps:
+      - uses: actions/checkout@v7
+      # Compose reads JWT_SECRET from backend/.env, which is not committed.
+      - run: echo "JWT_SECRET=ci-$(openssl rand -hex 32)" > ../backend/.env
+      - run: docker compose up --build --detach
+      # The backend applies migrations before it listens; wait for both apps.
+      - run: |
+          for i in $(seq 90); do
+            curl -sf http://localhost:3001/health/ready > /dev/null \
+              && curl -sf -o /dev/null http://localhost:3000/login && exit 0
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck
+      # Browser only, no --with-deps: the runner image ships Google Chrome, so
+      # Chromium's system libraries are already there, and the apt step that
+      # --with-deps adds took ~4 minutes on a slow mirror.
+      - run: npx playwright install chromium
+      - run: npm test
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
