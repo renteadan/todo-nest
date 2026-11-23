@@ -7,7 +7,8 @@ namespace: todo-app
 resources:
 - app.yaml
 
-# Set by the "Frontend" workflow after each build on main (`kustomize edit set image`).
+# Starting tag only. Argo CD Image Updater (docker-stacks, k8s/argocd-image-updater/)
+# sets the newest sha-* build on the Application, which overrides this.
 images:
 - name: ghcr.io/renteadan/todo-frontend
   newName: ghcr.io/renteadan/todo-frontend
