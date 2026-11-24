@@ -58,6 +58,8 @@ The two apps default to the same port, so give the API another one (`PORT` in `b
 
 Pull requests run [ci.yml](.github/workflows/ci.yml). It runs Prettier, lint, the unit tests and both builds, then starts the stack with Docker Compose and runs the browser tests. `main` is protected: changes go in through pull requests with passing checks, and nothing pushes to it directly.
 
+A pre-commit hook runs Prettier on all three packages and re-stages the staged files. Turn it on once per clone with `git config core.hooksPath .githooks` (it needs `npm install` in `backend`, `frontend` and `e2e`).
+
 Locally, run `npm run format:check`, `npm run lint`, `npm test` and `npm run build` in each app. The backend also has `npm run test:e2e`.
 
 ## Deployment

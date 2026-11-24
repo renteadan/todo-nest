@@ -1,0 +1,15 @@
+#!/bin/sh
+# Formats every package with its own Prettier (same versions and ignores as CI),
+# then re-stages the files that were already staged so the commit holds the formatted version.
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+for pkg in backend frontend e2e; do
+  # A package without node_modules has no Prettier to run; CI still checks it.
+  [ -d "$pkg/node_modules" ] || { echo "pre-commit: skipping $pkg (run npm install there)"; continue; }
+  (cd "$pkg" && npm run --silent format -- --log-level warn)
+done
+
+[ -n "$staged" ] && printf '%s\n' "$staged" | git add --pathspec-from-file=-
+exit 0
