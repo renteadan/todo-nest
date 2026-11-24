@@ -5,9 +5,6 @@ metadata:
   labels:
     app: todo-frontend
 spec:
-  # Pinned so Caddy on the host can forward to it, like the backend Service.
-  # Must stay inside 10.43.0.0/16 and not be taken by another Service.
-  clusterIP: 10.43.115.125
   selector:
     app: todo-frontend
   ports:
@@ -76,3 +73,14 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ['ALL']
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: todo-frontend
+spec:
+  # Caddy (docker-stacks) terminates TLS for todo.home.renteadan.com and forwards to Traefik, which routes here by Host.
+  ingressClassName: traefik
+  rules:
+    - host: todo.home.renteadan.com
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: todo-frontend, port: { name: http } } } }] }
