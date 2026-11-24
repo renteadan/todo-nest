@@ -6,9 +6,9 @@ These manifests run the API on a k3s cluster:
 - **The API** runs as a Deployment. Each container applies pending Prisma migrations before it starts the API.
 - **Redis** relays WebSocket events between API pods (socket.io's Redis adapter), so a client hears about a change whichever pod made it. It stores nothing.
 - **NetworkPolicies** let only the API pods reach Postgres and Redis. k3s enforces them with its built-in network policy controller.
-- **Caddy**, already running on the host, keeps ports 80 and 443 and terminates HTTPS with a certificate it gets and renews automatically. It proxies the app's domain straight to the `todo-backend` Service, whose cluster IP is pinned to `10.43.115.124` in [app.yaml](app.yaml). There is no ingress controller: k3s's Traefik is disabled.
+- **Caddy**, already running on the host, keeps ports 80 and 443 and terminates HTTPS with a certificate it gets and renews automatically. It forwards the app's domain to Traefik (deployed from the `docker-stacks` repo, `k8s/apps/traefik.yaml`), which routes it to the `todo-backend` Service by the Ingress in [app.yaml](app.yaml).
   ```
-  client ──https:443──▶ Caddy ──http:80──▶ todo-backend Service (10.43.115.124) ──▶ pods
+  client ──https:443──▶ Caddy ──http:80──▶ Traefik ──Ingress──▶ todo-backend Service ──▶ pods
   ```
 - **Argo CD** syncs this folder from `main`.
 - **Secrets** are created by hand with `kubectl` and never go into git. Argo CD doesn't manage them.
@@ -43,10 +43,10 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 3. **Site in Caddy.** Add this to the Caddyfile, then reload Caddy:
    ```
    api.renteadan.com {
-   	reverse_proxy 10.43.115.124:80
+   	reverse_proxy 10.43.51.95:80
    }
    ```
-   The upstream is the Service's pinned cluster IP from [app.yaml](app.yaml). Caddy runs on the k3s node, and the node routes cluster IPs to the pods, so Caddy can reach it. Caddy gets the certificate, redirects HTTP to HTTPS and renews the certificate by itself.
+   The upstream is Traefik's pinned cluster IP (`docker-stacks`, `k8s/apps/traefik.yaml`); the host must also be listed in the Ingress in [app.yaml](app.yaml). Caddy runs on the k3s node, and the node routes cluster IPs to the pods, so Caddy can reach it. Caddy gets the certificate, redirects HTTP to HTTPS and renews the certificate by itself.
 
 4. **Namespace.** Create it now, so the secrets have somewhere to go before Argo CD's first sync:
    ```sh
@@ -90,7 +90,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
 9. **Check.**
    ```sh
-   curl http://10.43.115.124/health/ready           # the Service directly (on the node)
+   curl -H 'Host: api.home.renteadan.com' http://10.43.51.95/health/ready   # Traefik directly (on the node)
    curl https://api.renteadan.com/health/ready      # through Caddy
    ```
    If the first works and the second doesn't, the problem is in Caddy: the upstream address, or the certificate. If both fail, check the pods and `kubectl -n todo-app get svc todo-backend`.
