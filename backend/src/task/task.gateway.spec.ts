@@ -2,6 +2,7 @@ import { type WsAuthenticator } from '@nestjs/authentication';
 import { type PrismaService } from '../prisma/prisma.service.js';
 import { type Task } from '../generated/prisma/client.js';
 import { TaskGateway } from './task.gateway.js';
+import { acceptedMembers } from './list-role.js';
 
 const task = (taskListId: number | null) =>
   ({ id: 5, userId: 1, taskListId, completedAt: null }) as Task;
@@ -21,11 +22,18 @@ describe('TaskGateway', () => {
     Object.assign(gateway, { server });
   });
 
-  it('notifies the users of the task’s list', async () => {
-    findUnique.mockResolvedValue({ userId: 7 });
-    await gateway.taskChanged('task.updated', task(3));
-    expect(server.to).toHaveBeenCalledWith(['user:7']);
-    expect(emit).toHaveBeenCalledWith('task.updated', task(3));
+  it('notifies the owner and accepted members of the task’s list', async () => {
+    findUnique.mockResolvedValue({
+      userId: 1,
+      TaskListMember: [{ userId: 5 }],
+    });
+    await gateway.taskChanged('task.updated', task(10));
+    expect(findUnique).toHaveBeenCalledWith({
+      where: { id: 10 },
+      include: acceptedMembers,
+    });
+    expect(server.to).toHaveBeenCalledWith(['user:1', 'user:5']);
+    expect(emit).toHaveBeenCalledWith('task.updated', task(10));
   });
 
   it('notifies the task’s owner when it is in no list', async () => {
@@ -42,11 +50,16 @@ describe('TaskGateway', () => {
     expect(emit).not.toHaveBeenCalled();
   });
 
-  it('sends the list with its tasks to its owner', async () => {
-    const list = { id: 3, userId: 7, Task: [task(3)] };
+  it('sends the list with its tasks to its owner and members', async () => {
+    const list = {
+      id: 10,
+      userId: 1,
+      TaskListMember: [{ userId: 5 }],
+      Task: [task(10)],
+    };
     findUnique.mockResolvedValue(list);
-    await gateway.tasklistUpdated(3);
-    expect(server.to).toHaveBeenCalledWith('user:7');
+    await gateway.tasklistUpdated(10);
+    expect(server.to).toHaveBeenCalledWith(['user:1', 'user:5']);
     expect(emit).toHaveBeenCalledWith('tasklist.updated', list);
   });
 
@@ -58,9 +71,27 @@ describe('TaskGateway', () => {
     expect(emit).not.toHaveBeenCalled();
   });
 
-  it('tells the owner a list was deleted', () => {
-    gateway.tasklistDeleted({ id: 3, userId: 7 });
-    expect(server.to).toHaveBeenCalledWith('user:7');
-    expect(emit).toHaveBeenCalledWith('tasklist.deleted', { id: 3 });
+  it('tells the given users a list was deleted', () => {
+    gateway.tasklistDeleted(10, [1, 5]);
+    expect(server.to).toHaveBeenCalledWith(['user:1', 'user:5']);
+    expect(emit).toHaveBeenCalledWith('tasklist.deleted', { id: 10 });
+  });
+
+  it('pushes each new notification to its user', () => {
+    const row = { id: 2, userId: 5, type: 'invited' };
+    gateway.notificationsCreated([row]);
+    expect(server.to).toHaveBeenCalledWith('user:5');
+    expect(emit).toHaveBeenCalledWith('notification.created', row);
+  });
+
+  it('never throws when an emit fails', () => {
+    server.to.mockImplementationOnce(() => {
+      throw new Error('adapter down');
+    });
+    expect(() => gateway.tasklistDeleted(10, [1])).not.toThrow();
+    server.to.mockImplementationOnce(() => {
+      throw new Error('adapter down');
+    });
+    expect(() => gateway.notificationsCreated([{ userId: 5 }])).not.toThrow();
   });
 });

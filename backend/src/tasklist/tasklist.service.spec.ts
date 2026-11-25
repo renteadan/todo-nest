@@ -12,6 +12,7 @@ import { OwnerPolicy } from '../auth/owner.policy.js';
 import { TaskService } from '../task/task.service.js';
 import { MAX_TASKS_PER_LIST, TasklistService } from './tasklist.service.js';
 import { TaskGateway } from '../task/task.gateway.js';
+import { NotificationService } from '../notification/notification.service.js';
 
 const owner: AuthUser = { id: 1, email: 'o@x.io', name: null, role: 'USER' };
 const other: AuthUser = { id: 3, email: 'p@x.io', name: null, role: 'USER' };
@@ -25,9 +26,14 @@ const lists: Record<number, object> = {
   13: { id: 13, userId: 1, Task: [] },
 };
 const tasks: Record<number, object> = {
-  20: { id: 20, userId: 1, taskListId: null },
-  21: { id: 21, userId: 1, taskListId: 10 },
-  30: { id: 30, userId: 3, taskListId: null },
+  20: { id: 20, userId: 1, taskListId: null, TaskList: null },
+  21: {
+    id: 21,
+    userId: 1,
+    taskListId: 10,
+    TaskList: { id: 10, userId: 1, TaskListMember: [] },
+  },
+  30: { id: 30, userId: 3, taskListId: null, TaskList: null },
 };
 
 describe('TasklistService', () => {
@@ -75,6 +81,7 @@ describe('TasklistService', () => {
         TaskService,
         { provide: PrismaService, useValue: prisma },
         { provide: TaskGateway, useValue: gateway },
+        { provide: NotificationService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(TasklistService);
@@ -151,7 +158,9 @@ describe('TasklistService', () => {
     await service.removeTask(10, 21, owner);
     expect(gateway.tasklistUpdated).toHaveBeenLastCalledWith(10);
     await service.remove(10, owner);
-    expect(gateway.tasklistDeleted).toHaveBeenCalledWith(lists[10]);
+    expect(gateway.tasklistDeleted).toHaveBeenCalledWith(10, [
+      lists[10].userId,
+    ]);
   });
 
   it('pushes both lists when a task moves from one list to another', async () => {

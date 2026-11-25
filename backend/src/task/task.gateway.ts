@@ -9,6 +9,7 @@ import { type Server, type Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { type AuthUser } from '../auth/auth-types.js';
 import { type Task } from '../generated/prisma/client.js';
+import { acceptedMembers, listUserIds } from './list-role.js';
 
 const userRoom = (userId: number) => `user:${userId}`;
 
@@ -24,6 +25,7 @@ type TaskEvent = 'task.created' | 'task.updated' | 'task.deleted';
  * - `tasklist.updated`: the list with its tasks, when it is created, renamed,
  *   or a task moves into or out of it.
  * - `tasklist.deleted`: `{ id }`; the list's tasks are now in no list.
+ * - `notification.created`: the notification, to its user.
  */
 // WebSocket only: HTTP long-polling would need sticky sessions across pods.
 @WebSocketGateway({ transports: ['websocket'] })
@@ -78,10 +80,12 @@ export class TaskGateway implements OnGatewayConnection {
     try {
       const list = await this.prisma.taskList.findUnique({
         where: { id: taskListId },
-        include: { Task: { orderBy: { id: 'asc' } } },
+        include: { ...acceptedMembers, Task: { orderBy: { id: 'asc' } } },
       });
       if (list) {
-        this.server.to(userRoom(list.userId)).emit('tasklist.updated', list);
+        this.server
+          .to(listUserIds(list).map(userRoom))
+          .emit('tasklist.updated', list);
       }
     } catch (error) {
       this.logger.error(
@@ -91,19 +95,36 @@ export class TaskGateway implements OnGatewayConnection {
     }
   }
 
-  // shortcut: sends to the owner only; send to the members once lists are shared.
-  tasklistDeleted(list: { id: number; userId: number }) {
-    this.server
-      .to(userRoom(list.userId))
-      .emit('tasklist.deleted', { id: list.id });
+  /** Tells the list's former users it is gone. Never throws. */
+  tasklistDeleted(listId: number, userIds: number[]) {
+    try {
+      this.server
+        .to(userIds.map(userRoom))
+        .emit('tasklist.deleted', { id: listId });
+    } catch (error) {
+      this.logger.error(`tasklist.deleted for list ${listId} not sent`, error);
+    }
   }
 
-  // shortcut: a list has one user (its owner); return its members once lists are shared.
+  /** Pushes each new notification to its user. Never throws. */
+  notificationsCreated(rows: { userId: number }[]) {
+    for (const row of rows) {
+      try {
+        this.server.to(userRoom(row.userId)).emit('notification.created', row);
+      } catch (error) {
+        this.logger.error(
+          `notification.created for user ${row.userId} not sent`,
+          error,
+        );
+      }
+    }
+  }
+
   private async listUserIds(taskListId: number): Promise<number[]> {
     const list = await this.prisma.taskList.findUnique({
       where: { id: taskListId },
-      select: { userId: true },
+      include: acceptedMembers,
     });
-    return list ? [list.userId] : [];
+    return list ? listUserIds(list) : [];
   }
 }

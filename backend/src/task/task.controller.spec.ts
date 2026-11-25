@@ -17,4 +17,12 @@ describe('TaskController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('declares GET /task/inbox before GET /task/:id', () => {
+    const methods = Object.getOwnPropertyNames(TaskController.prototype);
+    expect(methods.indexOf('findInbox')).toBeGreaterThan(-1);
+    expect(methods.indexOf('findInbox')).toBeLessThan(
+      methods.indexOf('findOne'),
+    );
+  });
 });

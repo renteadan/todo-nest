@@ -84,7 +84,7 @@ export class TasklistService {
   async remove(id: number, user: AuthUser) {
     await this.findOwned(id, user);
     const list = await this.prisma.taskList.delete({ where: { id } });
-    this.gateway.tasklistDeleted(list);
+    this.gateway.tasklistDeleted(list.id, [list.userId]);
     return list;
   }
 

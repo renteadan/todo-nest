@@ -11,6 +11,7 @@ import { OwnerPolicy } from './auth/owner.policy.js';
 import { HealthModule } from './health/health.module.js';
 import { TasklistModule } from './tasklist/tasklist.module.js';
 import { TaskModule } from './task/task.module.js';
+import { NotificationModule } from './notification/notification.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -47,6 +48,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     HealthModule,
     TasklistModule,
     TaskModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
