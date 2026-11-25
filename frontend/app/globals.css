@@ -28,6 +28,20 @@
   color-scheme: dark;
 }
 
+/* Dark mode: a faint paper grain, so the espresso ground reads as a
+   material rather than a flat fill. Pinned dark, or following a dark system. */
+:root[data-theme='dark'] body {
+  background-image: var(--grain);
+  background-size: 180px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) body {
+    background-image: var(--grain);
+    background-size: 180px;
+  }
+}
+
 /* The project's own names, pointed at the Atelier roles. */
 @theme inline {
   --color-background: var(--color-paper);
@@ -838,7 +852,8 @@ textarea {
     top: 0;
     z-index: var(--z-sticky-nav);
     border-bottom: 1px solid var(--color-rule);
-    background: var(--color-paper);
+    /* The body's ground, grain included in dark mode. */
+    background: inherit;
   }
 
   .wordmark {
