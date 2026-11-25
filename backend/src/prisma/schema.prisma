@@ -26,28 +26,68 @@ model Task {
 }
 
 model TaskList {
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  id        Int      @id @default(autoincrement())
-  title     String
-  updatedAt DateTime @db.Timestamptz(3)
-  userId    Int
-  Task      Task[]
-  User      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  id             Int              @id @default(autoincrement())
+  title          String
+  updatedAt      DateTime         @db.Timestamptz(3)
+  /// SHARED from the first invite on, never back: tasks then only leave by deletion.
+  visibility     Visibility       @default(PRIVATE)
+  userId         Int
+  Task           Task[]
+  TaskListMember TaskListMember[]
+  User           User             @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([userId], map: "TaskList_userId_idx_a489d58a")
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
-  name      String?
-  password  String
-  salt      String
-  role      Role       @default(USER)
-  createdAt DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime   @db.Timestamptz(3)
-  TaskList  TaskList[]
-  Task      Task[]
+  id             Int              @id @default(autoincrement())
+  email          String           @unique
+  name           String?
+  password       String
+  salt           String
+  role           Role             @default(USER)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @db.Timestamptz(3)
+  TaskList       TaskList[]
+  Task           Task[]
+  TaskListMember TaskListMember[]
+  Notification   Notification[]
+}
+
+model TaskListMember {
+  taskListId Int
+  userId     Int
+  invitedAt  DateTime  @default(now()) @db.Timestamptz(3)
+  /// null = pending invite; set on accept.
+  acceptedAt DateTime? @db.Timestamptz(3)
+  /// Deleting the list removes its members and invites.
+  TaskList   TaskList  @relation(fields: [taskListId], references: [id], onDelete: Cascade)
+  /// Deleting the user removes their memberships and invites.
+  User       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskListId, userId])
+  @@index([userId])
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  /// Recipient.
+  userId    Int
+  /// 'INVITE' | 'TASK_COMPLETED' | ... ; a string, not an enum, so new types need no migration.
+  type      String
+  /// Shape depends on `type`; validated by notificationSchema on write and read.
+  data      Json
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  readAt    DateTime? @db.Timestamptz(3)
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+enum Visibility {
+  PRIVATE
+  SHARED
 }
 
 enum Role {

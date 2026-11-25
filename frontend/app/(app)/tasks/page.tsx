@@ -1,5 +1,5 @@
 import { cache, Suspense } from 'react';
-import { authFetch, currentUserId } from '../../lib/session';
+import { authFetch } from '../../lib/session';
 import { ActionErrors } from './action-error';
 import {
   deleteTask,
@@ -32,7 +32,13 @@ type Task = {
   userId: number;
 };
 
-type Tasklist = { id: number; title: string; userId: number };
+type Tasklist = {
+  id: number;
+  title: string;
+  userId: number;
+  role: 'owner' | 'member' | null;
+  Task: Task[];
+};
 
 export default function TasksPage() {
   const loading = <p className="text-muted">Loading…</p>;
@@ -57,21 +63,22 @@ export default function TasksPage() {
 
 /**
  * Both columns need the same data: cache() makes it one fetch per request.
- * Only the user's own: admins get everyone's, but only owners change lists.
+ * Only the lists the user owns (shared lists get their UI in a later change);
+ * `tasks` is the Inbox plus the tasks in those lists.
  */
 const loadBoard = cache(async () => {
-  const [res, listsRes, userId] = await Promise.all([
-    authFetch('/task'),
-    authFetch('/tasklist'),
-    currentUserId(),
+  const [res, listsRes] = await Promise.all([
+    authFetch('/task/inbox'),
+    authFetch('/tasklist?include=tasks'),
   ]);
   if (!res.ok) throw new Error(`Loading tasks failed (${res.status})`);
   if (!listsRes.ok)
     throw new Error(`Loading lists failed (${listsRes.status})`);
-  const tasks: Task[] = await res.json();
-  const lists: Tasklist[] = await listsRes.json();
-  const mine = (r: { userId: number }) => r.userId === userId;
-  return { tasks: tasks.filter(mine), lists: lists.filter(mine) };
+  const inbox: Task[] = await res.json();
+  const lists = ((await listsRes.json()) as Tasklist[]).filter(
+    (l) => l.role === 'owner',
+  );
+  return { tasks: [...inbox, ...lists.flatMap((l) => l.Task)], lists };
 });
 
 async function Inbox() {
@@ -138,7 +145,7 @@ function Section({
             <ConfirmDelete
               action={deleteTasklist.bind(null, listId)}
               title={`Delete “${title}”?`}
-              message="The list goes away. Its tasks are kept and move to the inbox."
+              message="Tasks you created move to your Inbox; tasks created by other users are permanently deleted."
               className="btn-danger"
             >
               <TrashIcon />

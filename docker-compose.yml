@@ -7,6 +7,9 @@ services:
       POSTGRES_DB: todo
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # Dev only: lets host tools (prisma migrate, psql) reach it; localhost-bound.
+    ports:
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U todo -d todo"]
       interval: 2s
@@ -14,6 +17,12 @@ services:
 
   redis:
     image: redis:8-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      retries: 30
 
   backend:
     build: ./backend
@@ -36,7 +45,12 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
+    # The slim image has no curl/wget; Node's fetch does the check. Healthy once migrations ran and the DB answers.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health/ready').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 2s
+      retries: 60
 
   frontend:
     build: ./frontend
@@ -54,7 +68,8 @@ services:
         - path: ./frontend
           action: rebuild
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   pgdata:

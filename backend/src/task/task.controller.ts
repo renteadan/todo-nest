@@ -34,6 +34,12 @@ export class TaskController {
     return this.taskService.findAll(user);
   }
 
+  // Before ':id', or 'inbox' would be parsed as an id.
+  @Get('inbox')
+  findInbox(@CurrentUser() user: AuthUser) {
+    return this.taskService.findInbox(user);
+  }
+
   @Get(':id')
   findOne(
     @Param('id', ParseIntPipe) id: number,
