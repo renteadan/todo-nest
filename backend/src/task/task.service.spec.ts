@@ -208,6 +208,28 @@ describe('TaskService', () => {
     expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: 21 } });
   });
 
+  it('lets an admin outside the list edit and delete its task', async () => {
+    await expect(
+      service.update(31, { title: 'Admin edit' }, admin),
+    ).resolves.toMatchObject({ title: 'Admin edit' });
+    await expect(service.remove(31, admin)).resolves.toMatchObject({ id: 31 });
+    expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: 31 } });
+  });
+
+  it('keeps admin rights for an admin who joined the list', async () => {
+    memberRows[10].push({ userId: admin.id, acceptedAt: doneAt });
+    try {
+      await expect(
+        service.update(21, { title: 'Admin edit' }, admin),
+      ).resolves.toMatchObject({ title: 'Admin edit' });
+      await expect(service.remove(21, admin)).resolves.toMatchObject({
+        id: 21,
+      });
+    } finally {
+      memberRows[10].pop();
+    }
+  });
+
   it('tells the list’s other users when a task gets completed', async () => {
     await service.update(21, { completed: true }, member);
     expect(notifications.create).toHaveBeenCalledWith([1, 6], {

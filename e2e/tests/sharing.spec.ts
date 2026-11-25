@@ -115,4 +115,13 @@ test('invite, accept, member completes a task, owner is notified, member leaves'
     await call(request, owner, 'GET', `/tasklist/${list.id}`)
   ).json()) as { Task: { id: number }[] };
   expect(ownerView.Task.map((t) => t.id)).toEqual([task.id]);
+
+  // Shared for good: with every member gone, the task still can't leave.
+  const moveOut = await call(
+    request,
+    owner,
+    'DELETE',
+    `/tasklist/${list.id}/task/${task.id}`,
+  );
+  expect(moveOut.status()).toBe(Status.forbidden);
 });

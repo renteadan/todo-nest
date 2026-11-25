@@ -27,20 +27,29 @@ const invitee: AuthUser = { id: 5, email: 'i@x.io', name: null, role: 'USER' };
 // List 15 belongs to user 4. Task 40 is user 4's, in no list; task 41 was
 // created by user 4 in list 14.
 // TaskListMember holds accepted members only, as the acceptedMembers include does.
-const lists: Record<number, { id: number; userId: number }> = {
+const lists: Record<
+  number,
+  {
+    id: number;
+    userId: number;
+    Task: object[];
+    TaskListMember: { userId: number }[];
+  }
+> = {
   10: { id: 10, userId: 1, Task: [], TaskListMember: [] },
   11: { id: 11, userId: 2, Task: [], TaskListMember: [] },
   13: { id: 13, userId: 1, Task: [], TaskListMember: [] },
   14: { id: 14, userId: 1, Task: [], TaskListMember: [{ userId: 4 }] },
   15: { id: 15, userId: 4, Task: [], TaskListMember: [] },
-} as Record<number, { id: number; userId: number }>;
+  16: { id: 16, userId: 1, Task: [], TaskListMember: [] },
+};
 const tasks: Record<number, object> = {
   20: { id: 20, userId: 1, taskListId: null, TaskList: null },
   21: {
     id: 21,
     userId: 1,
     taskListId: 10,
-    TaskList: { id: 10, userId: 1, TaskListMember: [] },
+    TaskList: { id: 10, userId: 1, visibility: 'PRIVATE', TaskListMember: [] },
   },
   30: { id: 30, userId: 3, taskListId: null, TaskList: null },
   40: { id: 40, userId: 4, taskListId: null, TaskList: null },
@@ -48,14 +57,38 @@ const tasks: Record<number, object> = {
     id: 41,
     userId: 4,
     taskListId: 14,
-    TaskList: { id: 14, userId: 1, TaskListMember: [{ userId: 4 }] },
+    TaskList: {
+      id: 14,
+      userId: 1,
+      visibility: 'SHARED',
+      TaskListMember: [{ userId: 4 }],
+    },
+  },
+  // Created by the owner in shared list 14.
+  43: {
+    id: 43,
+    userId: 1,
+    taskListId: 14,
+    TaskList: {
+      id: 14,
+      userId: 1,
+      visibility: 'SHARED',
+      TaskListMember: [{ userId: 4 }],
+    },
+  },
+  // List 16 was shared and everyone left: it stays shared.
+  44: {
+    id: 44,
+    userId: 1,
+    taskListId: 16,
+    TaskList: { id: 16, userId: 1, visibility: 'SHARED', TaskListMember: [] },
   },
   // In list 15, owned by user 4.
   42: {
     id: 42,
     userId: 4,
     taskListId: 15,
-    TaskList: { id: 15, userId: 4, TaskListMember: [] },
+    TaskList: { id: 15, userId: 4, visibility: 'PRIVATE', TaskListMember: [] },
   },
 };
 
@@ -140,17 +173,18 @@ describe('TasklistService', () => {
   });
 
   it('gives each list the caller’s role, without the member array', async () => {
-    prisma.taskList.findMany.mockResolvedValue([lists[10], lists[14]]);
+    prisma.taskList.findMany.mockResolvedValueOnce([lists[10], lists[14]]);
     await expect(service.findAll(member, false)).resolves.toEqual([
       { id: 10, userId: 1, Task: [], role: null },
       { id: 14, userId: 1, Task: [], role: 'member' },
     ]);
+    prisma.taskList.findMany.mockResolvedValueOnce([lists[10], lists[14]]);
     const owned = await service.findAll(owner, false);
     expect(owned.map((l) => l.role)).toEqual(['owner', 'owner']);
+    prisma.taskList.findMany.mockResolvedValueOnce([lists[10], lists[14]]);
     const all = await service.findAll(admin, false);
     expect(all.map((l) => l.role)).toEqual([null, null]);
     expect(all[0]).not.toHaveProperty('TaskListMember');
-    prisma.taskList.findMany.mockResolvedValue([]);
   });
 
   it('loads tasks only with include=tasks', async () => {
@@ -253,15 +287,25 @@ describe('TasklistService', () => {
     expect(gateway.tasklistUpdated).not.toHaveBeenCalled();
   });
 
-  it('lets the owner remove a member-created task, but not a member', async () => {
-    await expect(service.removeTask(14, 41, owner)).resolves.toMatchObject({
-      id: 41,
-      taskListId: null,
-    });
-    await expect(service.removeTask(14, 41, member)).rejects.toThrow(
+  it('lets no one move a task out of a shared list, the owner included', async () => {
+    for (const [taskId, user] of [
+      [41, owner],
+      [43, owner],
+      [41, member],
+    ] as const) {
+      await expect(service.removeTask(14, taskId, user)).rejects.toThrow(
+        ForbiddenException,
+      );
+    }
+    // Shared stays shared after everyone left.
+    await expect(service.removeTask(16, 44, owner)).rejects.toThrow(
       ForbiddenException,
     );
-    expect(prisma.task.update).toHaveBeenCalledTimes(1);
+    // Not into another list either, even one the owner owns.
+    await expect(service.addTask(13, 43, owner)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(prisma.task.update).not.toHaveBeenCalled();
   });
 
   it('deletes a shared list with members’ tasks, notifications and events', async () => {

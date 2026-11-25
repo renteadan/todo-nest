@@ -65,6 +65,7 @@ describe('MemberService', () => {
       findUnique: vi.fn(({ where }) =>
         Promise.resolve(where.id === 14 ? list : null),
       ),
+      update: vi.fn(({ data }) => Promise.resolve({ ...list, ...data })),
     },
     taskListMember: {
       findUnique: vi.fn(findRow),
@@ -79,7 +80,17 @@ describe('MemberService', () => {
         Promise.resolve({ ...data, invitedAt: new Date(), acceptedAt: null }),
       ),
       update: vi.fn(({ data }) => Promise.resolve(data)),
-      delete: vi.fn(findRow),
+      deleteMany: vi.fn(
+        ({ where }: { where: { taskListId: number; userId: number } }) =>
+          Promise.resolve({
+            count: rows.some(
+              (r) =>
+                r.taskListId === where.taskListId && r.userId === where.userId,
+            )
+              ? 1
+              : 0,
+          }),
+      ),
     },
   };
   Object.assign(prisma, {
@@ -146,6 +157,11 @@ describe('MemberService', () => {
       const entry = await service.invite(14, 'b@x.io', owner);
       expect(prisma.taskListMember.create).toHaveBeenCalledWith({
         data: { taskListId: 14, userId: 6 },
+      });
+      // The first invite makes the list shared, for good.
+      expect(prisma.taskList.update).toHaveBeenCalledWith({
+        where: { id: 14 },
+        data: { visibility: 'SHARED' },
       });
       expect(notifications.create).toHaveBeenCalledWith(
         [6],
@@ -248,8 +264,8 @@ describe('MemberService', () => {
   describe('remove', () => {
     it('lets the owner kick a member', async () => {
       await service.remove(14, 4, owner);
-      expect(prisma.taskListMember.delete).toHaveBeenCalledWith({
-        where: { taskListId_userId: { taskListId: 14, userId: 4 } },
+      expect(prisma.taskListMember.deleteMany).toHaveBeenCalledWith({
+        where: { taskListId: 14, userId: 4 },
       });
       expect(notifications.deleteInvite).toHaveBeenCalledWith(14, 4, prisma);
       expect(gateway.tasklistDeleted).toHaveBeenCalledWith(14, [4]);
@@ -258,8 +274,8 @@ describe('MemberService', () => {
 
     it('lets a member leave via me', async () => {
       await service.remove(14, 'me', member);
-      expect(prisma.taskListMember.delete).toHaveBeenCalledWith({
-        where: { taskListId_userId: { taskListId: 14, userId: 4 } },
+      expect(prisma.taskListMember.deleteMany).toHaveBeenCalledWith({
+        where: { taskListId: 14, userId: 4 },
       });
       expect(gateway.tasklistDeleted).toHaveBeenCalledWith(14, [4]);
     });
@@ -269,6 +285,30 @@ describe('MemberService', () => {
       expect(notifications.deleteInvite).toHaveBeenCalledWith(14, 5, prisma);
       expect(gateway.tasklistDeleted).not.toHaveBeenCalled();
       expect(gateway.tasklistUpdated).not.toHaveBeenCalled();
+    });
+
+    it('lets the owner cancel a pending invite, without tasklist events', async () => {
+      await service.remove(14, 5, owner);
+      expect(prisma.taskListMember.deleteMany).toHaveBeenCalledWith({
+        where: { taskListId: 14, userId: 5 },
+      });
+      expect(notifications.deleteInvite).toHaveBeenCalledWith(14, 5, prisma);
+      expect(gateway.tasklistDeleted).not.toHaveBeenCalled();
+      expect(gateway.tasklistUpdated).not.toHaveBeenCalled();
+    });
+
+    it('lets an admin who joined the list leave via me', async () => {
+      rows.push({
+        taskListId: 14,
+        userId: admin.id,
+        invitedAt: new Date('2026-01-05'),
+        acceptedAt: accepted,
+      });
+      await service.remove(14, 'me', admin);
+      expect(prisma.taskListMember.deleteMany).toHaveBeenCalledWith({
+        where: { taskListId: 14, userId: admin.id },
+      });
+      expect(gateway.tasklistDeleted).toHaveBeenCalledWith(14, [admin.id]);
     });
 
     it('400s for the owner removing themselves', async () => {
@@ -284,7 +324,7 @@ describe('MemberService', () => {
       await expect(service.remove(14, 4, admin)).rejects.toThrow(
         ForbiddenException,
       );
-      expect(prisma.taskListMember.delete).not.toHaveBeenCalled();
+      expect(prisma.taskListMember.deleteMany).not.toHaveBeenCalled();
     });
 
     it('404s for a missing row or an invisible list', async () => {
@@ -297,6 +337,24 @@ describe('MemberService', () => {
       await expect(service.remove(99, 'me', member)).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('gives a stranger the same 404 whether or not the list exists', async () => {
+      const stranger = { ...invitee, id: b.id, email: b.email };
+      await expect(service.remove(14, 'me', stranger)).rejects.toThrow(
+        'Task list 14 not found',
+      );
+      await expect(service.remove(99, 'me', stranger)).rejects.toThrow(
+        'Task list 99 not found',
+      );
+    });
+
+    it('404s, not 500s, when a concurrent remove deleted the row first', async () => {
+      prisma.taskListMember.deleteMany.mockResolvedValueOnce({ count: 0 });
+      await expect(service.remove(14, 4, owner)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(gateway.tasklistDeleted).not.toHaveBeenCalled();
     });
   });
 

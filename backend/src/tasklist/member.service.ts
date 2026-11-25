@@ -93,6 +93,11 @@ export class MemberService {
         row: await tx.taskListMember.create({
           data: { taskListId: listId, userId: invitee.id },
         }),
+        // The first invite shares the list for good; it never goes back.
+        list: await tx.taskList.update({
+          where: { id: listId },
+          data: { visibility: 'SHARED' },
+        }),
         notices: await this.notifications.create(
           [invitee.id],
           {
@@ -170,11 +175,21 @@ export class MemberService {
     const row = await this.prisma.taskListMember.findUnique({
       where: memberKey(listId, targetId),
     });
-    if (!row) {
-      throw new NotFoundException(`User ${targetId} is not in list ${listId}`);
-    }
+    // Only the owner may learn who is in the list; anyone else asked about
+    // themselves, so the message must not tell an existing list apart.
+    const notFound = () =>
+      new NotFoundException(
+        isOwner
+          ? `User ${targetId} is not in list ${listId}`
+          : `Task list ${listId} not found`,
+      );
+    if (!row) throw notFound();
     await this.prisma.$transaction(async (tx) => {
-      await tx.taskListMember.delete({ where: memberKey(listId, targetId) });
+      // deleteMany: a concurrent remove may have won; that is a 404, not a 500.
+      const { count } = await tx.taskListMember.deleteMany({
+        where: { taskListId: listId, userId: targetId },
+      });
+      if (count === 0) throw notFound();
       await this.notifications.deleteInvite(listId, targetId, tx);
     });
     if (row.acceptedAt) {

@@ -30,6 +30,8 @@ model TaskList {
   id             Int              @id @default(autoincrement())
   title          String
   updatedAt      DateTime         @db.Timestamptz(3)
+  /// SHARED from the first invite on, never back: tasks then only leave by deletion.
+  visibility     Visibility       @default(PRIVATE)
   userId         Int
   Task           Task[]
   TaskListMember TaskListMember[]
@@ -81,6 +83,11 @@ model Notification {
   User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+enum Visibility {
+  PRIVATE
+  SHARED
 }
 
 enum Role {

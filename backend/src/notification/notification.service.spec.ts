@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationService } from './notification.service.js';
 import {
@@ -142,6 +142,9 @@ describe('NotificationService', () => {
   });
 
   it('findAll filters unread only when asked and drops invalid rows', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
     const [feed, ...rest] = await service.findAll(USER_ID, true);
     expect(rest).toEqual([]);
     expect(Object.keys(feed).sort()).toEqual(
@@ -155,6 +158,9 @@ describe('NotificationService', () => {
     expect(prisma.notification.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({ where: { userId: USER_ID } }),
     );
+    // The invalid row is logged, once per call.
+    expect(warn).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
   });
 
   it('markRead 404s on another user’s notification', async () => {
@@ -167,6 +173,14 @@ describe('NotificationService', () => {
     ).resolves.toMatchObject({
       readAt: expect.any(Date),
     });
+  });
+
+  it('markRead 404s on a notification that does not exist', async () => {
+    prisma.notification.findUnique.mockResolvedValueOnce(null as never);
+    await expect(
+      service.markRead(FOREIGN_ROW_ID, USER_ID),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.notification.update).not.toHaveBeenCalled();
   });
 
   it('deleteForList filters on the JSON taskListId', async () => {

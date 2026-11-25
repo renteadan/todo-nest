@@ -14,6 +14,7 @@ import { NotificationService } from '../notification/notification.service.js';
 import { acceptedMembers, listRole, listUserIds } from '../task/list-role.js';
 import { type CreateTasklistDto } from './dto/create-tasklist.dto.js';
 import { type UpdateTasklistDto } from './dto/update-tasklist.dto.js';
+import { type Visibility } from '../generated/prisma/enums.js';
 
 /** Completed tasks count too. */
 export const MAX_TASKS_PER_LIST = 50;
@@ -147,6 +148,11 @@ export class TasklistService {
       );
     }
     const { task } = await this.taskService.findAccessible(taskId, user);
+    if (task.TaskList && isShared(task.TaskList)) {
+      throw new ForbiddenException(
+        `Task ${taskId} is in a shared list: only the owner can delete it`,
+      );
+    }
     const fromInbox = task.TaskList === null && task.userId === user.id;
     // A list-to-list move needs both lists owned by the caller.
     const fromOwned =
@@ -189,8 +195,13 @@ export class TasklistService {
     await this.findOwned(id, user);
     // findAccessible, not findOne: a member-created task must be found too.
     const { task } = await this.taskService.findAccessible(taskId, user);
-    if (task.taskListId !== id) {
+    if (task.taskListId !== id || !task.TaskList) {
       throw new NotFoundException(`Task ${taskId} is not in task list ${id}`);
+    }
+    if (isShared(task.TaskList)) {
+      throw new ForbiddenException(
+        `Task ${taskId} is in a shared list: only the owner can delete it`,
+      );
     }
     const moved = await this.prisma.task.update({
       where: { id: taskId },
@@ -199,4 +210,9 @@ export class TasklistService {
     await this.gateway.tasklistUpdated(id);
     return moved;
   }
+}
+
+/** Tasks never leave a shared list; its owner deletes them instead. */
+function isShared(list: { visibility: Visibility }): boolean {
+  return list.visibility === 'SHARED';
 }

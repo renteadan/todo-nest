@@ -72,7 +72,11 @@ export class TaskService {
       let role: TaskRole | null = task.TaskList
         ? listRole(task.TaskList, user.id)
         : creator;
-      if (!role && (await this.authorization.can(OwnerPolicy, 'viewAll', user)))
+      // An admin who joined the list keeps admin rights over its tasks.
+      if (
+        (!role || role === 'member') &&
+        (await this.authorization.can(OwnerPolicy, 'viewAll', user))
+      )
         role = 'admin';
       if (role) return { task, role };
     }

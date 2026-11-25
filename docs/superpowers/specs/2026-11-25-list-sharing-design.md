@@ -38,7 +38,8 @@ so the API must be complete enough to build the UI on without backend changes.
 - rename and delete the list
 - complete/uncomplete any task in it
 - delete any task in it, whoever created it
-- move any task out of it
+- move tasks out of it only while it is `PRIVATE`; once `SHARED`, a task
+  never leaves it: the owner deletes it instead
 - invite and remove members
 
 **Member** (accepted `TaskListMember` row):
@@ -129,6 +130,14 @@ export const notificationSchema = z.discriminatedUnion('type', [
 - Invalid data on write throws; rows that fail parsing on read are logged and
   skipped, not returned.
 
+### List visibility
+
+`TaskList.visibility` is `PRIVATE` (default) or `SHARED`. The first invite sets
+`SHARED` in the invite's transaction, and nothing sets it back: a list stays
+shared after every member and invite is gone. It decides only whether tasks
+can leave the list; access still comes from `TaskListMember` rows. The
+migration backfills `SHARED` for lists that already have member rows.
+
 ### Deleting a list
 
 In one transaction:
@@ -205,9 +214,11 @@ allowed (e.g. a member renaming a list) → 403.
   still get `tasklist.updated`, as today). Replaces the current "task owner
   must equal list owner" rule in `TasklistService.addTask`.
   `MAX_TASKS_PER_LIST` still applies.
-- `DELETE /tasklist/:id/task/:taskId` (move out): owner only.
+- `DELETE /tasklist/:id/task/:taskId` (move out): owner only, and only while
+  the list is `PRIVATE` (403 otherwise). A list-to-list move out of a shared
+  list is refused the same way.
 - `GET /task/:id`: the creator if the task is in no list; otherwise owner or
-  accepted member of its list. `GET /task` (the caller's own tasks) is unchanged.
+  accepted member of its list.
 - `PATCH /task/:id`:
   - task in no list: creator, any field (as today)
   - task in a list, caller is list owner: any field
@@ -239,7 +250,7 @@ delete any task through `/task/:id`, as today.
   Playwright e2e in `e2e/`.
 - Test against the docker compose stack (:3000/:3001).
 
-## Calls made during review (not discussed in detail)
+## Calls made during review (not discussed in detail)i want
 
 - List-to-list moves: only between lists the caller owns (see move in).
 - Admins stay read-only on lists; `role: null` for lists they only see as admin.
