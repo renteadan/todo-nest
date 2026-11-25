@@ -145,7 +145,7 @@ function Section({
             <ConfirmDelete
               action={deleteTasklist.bind(null, listId)}
               title={`Delete “${title}”?`}
-              message="The list goes away. Its tasks are kept and move to the inbox."
+              message="Tasks you created move to your Inbox; tasks created by other users are permanently deleted."
               className="btn-danger"
             >
               <TrashIcon />

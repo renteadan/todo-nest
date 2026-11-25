@@ -11,7 +11,12 @@ import { OwnerPolicy } from '../auth/owner.policy.js';
 import { TaskService } from '../task/task.service.js';
 import { TaskGateway } from '../task/task.gateway.js';
 import { NotificationService } from '../notification/notification.service.js';
-import { acceptedMembers, listRole, listUserIds } from '../task/list-role.js';
+import {
+  acceptedMembers,
+  type ListWithMembers,
+  listRole,
+  listUserIds,
+} from '../task/list-role.js';
 import { type CreateTasklistDto } from './dto/create-tasklist.dto.js';
 import { type UpdateTasklistDto } from './dto/update-tasklist.dto.js';
 import { type Visibility } from '../generated/prisma/enums.js';
@@ -117,6 +122,8 @@ export class TasklistService {
       select: { userId: true },
     });
     const list = await this.prisma.$transaction(async (tx) => {
+      // The lock addTask takes: no task can join the list once this runs.
+      await lockLists(tx, [id]);
       await tx.task.deleteMany({
         where: { taskListId: id, NOT: { userId: ownerId } },
       });
@@ -142,31 +149,26 @@ export class TasklistService {
    */
   async addTask(id: number, taskId: number, user: AuthUser) {
     const { role } = await this.findOne(id, user);
-    if (!role) {
-      throw new ForbiddenException(
-        `Only list users can add to task list ${id}`,
-      );
-    }
     const { task } = await this.taskService.findAccessible(taskId, user);
-    if (task.TaskList && isShared(task.TaskList)) {
-      throw new ForbiddenException(
-        `Task ${taskId} is in a shared list: only the owner can delete it`,
-      );
-    }
-    const fromInbox = task.TaskList === null && task.userId === user.id;
-    // A list-to-list move needs both lists owned by the caller.
-    const fromOwned =
-      task.TaskList !== null &&
-      listRole(task.TaskList, user.id) === 'owner' &&
-      role === 'owner';
-    if (!fromInbox && !fromOwned) {
-      throw new ForbiddenException(
-        `Only the owner can move task ${taskId} out of its list`,
-      );
-    }
+    checkAdd(task, role, user);
     const moved = await this.prisma.$transaction(async (tx) => {
-      // Locks the list row, so two concurrent adds can't both pass the count.
-      await tx.$queryRaw`SELECT 1 FROM "TaskList" WHERE id = ${id} FOR UPDATE`;
+      // Both lists, then the task: serializes with other moves of this task,
+      // with invites (they update the list row) and with list deletion.
+      await lockLists(tx, [id, task.taskListId]);
+      await tx.$queryRaw`SELECT 1 FROM "Task" WHERE id = ${taskId} FOR UPDATE`;
+      // Re-checked under the locks: what was read above may be stale.
+      const fresh = await tx.task.findUnique({
+        where: { id: taskId },
+        include: { TaskList: { include: acceptedMembers } },
+      });
+      const list = await tx.taskList.findUnique({
+        where: { id },
+        include: acceptedMembers,
+      });
+      if (!fresh || !list || fresh.taskListId !== task.taskListId) {
+        throw new ConflictException(`Task ${taskId} changed; try again`);
+      }
+      checkAdd(fresh, listRole(list, user.id), user);
       // The others, counted under the lock: whether this task is in the list
       // was read before it, and may have changed since.
       if (
@@ -203,9 +205,26 @@ export class TasklistService {
         `Task ${taskId} is in a shared list: only the owner can delete it`,
       );
     }
-    const moved = await this.prisma.task.update({
-      where: { id: taskId },
-      data: { taskListId: null, updatedAt: new Date() },
+    const moved = await this.prisma.$transaction(async (tx) => {
+      // An invite commits SHARED under this lock; recheck once it is held.
+      await lockLists(tx, [id]);
+      // Moves out of this list lock it too, so this read stays true.
+      const fresh = await tx.task.findUnique({
+        where: { id: taskId },
+        include: { TaskList: true },
+      });
+      if (fresh?.taskListId !== id || !fresh.TaskList) {
+        throw new NotFoundException(`Task ${taskId} is not in task list ${id}`);
+      }
+      if (isShared(fresh.TaskList)) {
+        throw new ForbiddenException(
+          `Task ${taskId} is in a shared list: only the owner can delete it`,
+        );
+      }
+      return tx.task.update({
+        where: { id: taskId },
+        data: { taskListId: null, updatedAt: new Date() },
+      });
     });
     await this.gateway.tasklistUpdated(id);
     return moved;
@@ -215,4 +234,50 @@ export class TasklistService {
 /** Tasks never leave a shared list; its owner deletes them instead. */
 function isShared(list: { visibility: Visibility }): boolean {
   return list.visibility === 'SHARED';
+}
+
+/**
+ * Whether the caller may put this task in a list where they have `role`:
+ * from their own Inbox, or between two lists they own.
+ */
+function checkAdd(
+  task: {
+    id: number;
+    userId: number;
+    TaskList: (ListWithMembers & { visibility: Visibility }) | null;
+  },
+  role: 'owner' | 'member' | null,
+  user: AuthUser,
+) {
+  if (!role) {
+    throw new ForbiddenException(`Only list users can add task ${task.id}`);
+  }
+  if (task.TaskList && isShared(task.TaskList)) {
+    throw new ForbiddenException(
+      `Task ${task.id} is in a shared list: only the owner can delete it`,
+    );
+  }
+  const fromInbox = task.TaskList === null && task.userId === user.id;
+  const fromOwned =
+    task.TaskList !== null &&
+    listRole(task.TaskList, user.id) === 'owner' &&
+    role === 'owner';
+  if (!fromInbox && !fromOwned) {
+    throw new ForbiddenException(
+      `Only the owner can move task ${task.id} out of its list`,
+    );
+  }
+}
+
+/** Row-locks the lists in id order, so two transactions can't deadlock. */
+async function lockLists(
+  tx: Pick<PrismaService, '$queryRaw'>,
+  ids: (number | null)[],
+) {
+  const sorted = [...new Set(ids)]
+    .filter((i) => i !== null)
+    .sort((a, b) => a - b);
+  for (const listId of sorted) {
+    await tx.$queryRaw`SELECT 1 FROM "TaskList" WHERE id = ${listId} FOR UPDATE`;
+  }
 }
