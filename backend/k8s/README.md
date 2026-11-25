@@ -90,10 +90,10 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
 9. **Check.**
    ```sh
-   curl -H 'Host: api.home.renteadan.com' http://10.43.51.95/health/ready   # Traefik directly (on the node)
-   curl https://api.renteadan.com/health/ready      # through Caddy
+   kubectl -n todo-app port-forward svc/todo-backend 8080:http &
+   curl http://localhost:8080/health/ready
    ```
-   If the first works and the second doesn't, the problem is in Caddy: the upstream address, or the certificate. If both fail, check the pods and `kubectl -n todo-app get svc todo-backend`.
+   If it fails, check the pods and `kubectl -n todo-app get svc todo-backend`.
 
 ## GitHub tokens
 

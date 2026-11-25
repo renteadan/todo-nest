@@ -95,7 +95,8 @@ metadata:
   name: todo-backend
 spec:
   # Caddy (docker-stacks) terminates TLS for api.home.renteadan.com and forwards to Traefik, which routes here by Host.
+  # Only socket.io is public: the frontend calls the REST API in-cluster through http://todo-backend.
   ingressClassName: traefik
   rules:
     - host: api.home.renteadan.com
-      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: todo-backend, port: { name: http } } } }] }
+      http: { paths: [{ path: /socket.io, pathType: Prefix, backend: { service: { name: todo-backend, port: { name: http } } } }] }
