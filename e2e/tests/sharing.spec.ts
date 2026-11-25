@@ -1,5 +1,5 @@
-import { expect, test, type APIRequestContext } from '@playwright/test';
-import { API, api, newUser, type User } from './helpers';
+import { expect, test } from '@playwright/test';
+import { api, call, newUser } from './helpers';
 
 const Status = {
   ok: 200,
@@ -8,21 +8,6 @@ const Status = {
   forbidden: 403,
   notFound: 404,
 } as const;
-
-/** Raw call as `user`, so a test can assert non-2xx statuses too. */
-function call(
-  request: APIRequestContext,
-  user: User,
-  method: string,
-  path: string,
-  data?: object,
-) {
-  return request.fetch(`${API}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${user.accessToken}` },
-    data,
-  });
-}
 
 test('invite, accept, member completes a task, owner is notified, member leaves', async ({
   request,

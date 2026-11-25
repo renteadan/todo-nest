@@ -63,6 +63,21 @@ export async function signIn(context: BrowserContext, user: User) {
   ]);
 }
 
+/** Raw call as `user`, so a test can assert non-2xx statuses too. */
+export function call(
+  request: APIRequestContext,
+  user: User,
+  method: string,
+  path: string,
+  data?: object,
+) {
+  return request.fetch(`${API}${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${user.accessToken}` },
+    data,
+  });
+}
+
 /** Calls the backend as `user`. */
 export function api(request: APIRequestContext, user: User) {
   const headers = { Authorization: `Bearer ${user.accessToken}` };
