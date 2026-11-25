@@ -83,9 +83,11 @@ export class TaskGateway implements OnGatewayConnection {
         include: { ...acceptedMembers, Task: { orderBy: { id: 'asc' } } },
       });
       if (list) {
+        // Members are for routing only; role is per viewer, so not sent.
+        const { TaskListMember: _members, ...payload } = list;
         this.server
           .to(listUserIds(list).map(userRoom))
-          .emit('tasklist.updated', list);
+          .emit('tasklist.updated', payload);
       }
     } catch (error) {
       this.logger.error(
@@ -97,6 +99,8 @@ export class TaskGateway implements OnGatewayConnection {
 
   /** Tells the list's former users it is gone. Never throws. */
   tasklistDeleted(listId: number, userIds: number[]) {
+    // to([]) would broadcast to every socket.
+    if (userIds.length === 0) return;
     try {
       this.server
         .to(userIds.map(userRoom))

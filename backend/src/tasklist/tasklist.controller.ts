@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CurrentUser } from '@nestjs/authentication';
 import { Can } from '@nestjs/authorization';
@@ -36,9 +37,10 @@ export class TasklistController {
     return this.tasklistService.create(createTasklistDto, user);
   }
 
+  /** `?include=tasks` adds each list's tasks. */
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.tasklistService.findAll(user);
+  findAll(@CurrentUser() user: AuthUser, @Query('include') include?: string) {
+    return this.tasklistService.findAll(user, include === 'tasks');
   }
 
   @Get(':id')

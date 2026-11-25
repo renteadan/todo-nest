@@ -60,7 +60,12 @@ describe('TaskGateway', () => {
     findUnique.mockResolvedValue(list);
     await gateway.tasklistUpdated(10);
     expect(server.to).toHaveBeenCalledWith(['user:1', 'user:5']);
-    expect(emit).toHaveBeenCalledWith('tasklist.updated', list);
+    expect(emit).toHaveBeenCalledWith('tasklist.updated', {
+      id: 10,
+      userId: 1,
+      Task: [task(10)],
+    });
+    expect(emit.mock.lastCall?.[1]).not.toHaveProperty('TaskListMember');
   });
 
   it('sends nothing, and never throws, when the list is gone or the db fails', async () => {
@@ -75,6 +80,13 @@ describe('TaskGateway', () => {
     gateway.tasklistDeleted(10, [1, 5]);
     expect(server.to).toHaveBeenCalledWith(['user:1', 'user:5']);
     expect(emit).toHaveBeenCalledWith('tasklist.deleted', { id: 10 });
+  });
+
+  it('sends nothing when there is nobody to tell', () => {
+    // to([]) would reach every socket.
+    gateway.tasklistDeleted(10, []);
+    expect(server.to).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
   });
 
   it('pushes each new notification to its user', () => {
