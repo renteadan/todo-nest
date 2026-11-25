@@ -72,7 +72,7 @@ client ──https──▶ Caddy (on the node) ──▶ Traefik ──▶ todo
                                                  └──▶ todo-frontend Service ──▶ Next.js pods
 ```
 
-- Caddy terminates TLS and forwards to Traefik, which routes by host to each app's Ingress (in its `app.yaml`). The API is at `api.renteadan.com`.
+- Caddy terminates TLS and forwards to Traefik, which routes by host to each app's Ingress (in its `app.yaml`). The API is at `api.home.renteadan.com`.
 - When a merge to `main` changes an app's code, its workflow runs ([backend.yml](.github/workflows/backend.yml), [frontend.yml](.github/workflows/frontend.yml)). It builds `ghcr.io/renteadan/todo-<app>`, tags it `sha-<commit>` and `latest`, and dates the image by the commit. Changes to `k8s/` or Markdown files don't trigger a build. Nothing is committed back to git.
 - Argo CD Image Updater sees the new tag in GHCR within 2 minutes and sets it on the app's Argo CD Application, which rolls out the new version. The Applications and the updater's config live in the `docker-stacks` repo. Rollback steps are in [backend/k8s/README.md](backend/k8s/README.md#how-a-release-flows).
 - The backend applies pending Prisma migrations when each pod starts.

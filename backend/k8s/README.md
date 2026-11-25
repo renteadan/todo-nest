@@ -32,7 +32,7 @@ Put the entry back once a fixed build is on `main`.
 
 Run the `kubectl` commands where you have the cluster's kubeconfig.
 
-1. **DNS.** Point an A record for `api.renteadan.com` to the server's public IP.
+1. **DNS.** Point an A record for `api.home.renteadan.com` to the server's public IP.
 
 2. **Disable Traefik in k3s.** Caddy owns ports 80 and 443, so k3s's bundled Traefik isn't used. Add this to `/etc/rancher/k3s/config.yaml`, then `sudo systemctl restart k3s`:
    ```yaml
@@ -42,7 +42,7 @@ Run the `kubectl` commands where you have the cluster's kubeconfig.
 
 3. **Site in Caddy.** Add this to the Caddyfile, then reload Caddy:
    ```
-   api.renteadan.com {
+   api.home.renteadan.com {
    	reverse_proxy 10.43.51.95:80
    }
    ```
