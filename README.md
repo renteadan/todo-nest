@@ -76,7 +76,7 @@ client ──https──▶ Caddy (on the node) ──▶ Traefik ──▶ todo
 - When a merge to `main` changes an app's code, its workflow runs ([backend.yml](.github/workflows/backend.yml), [frontend.yml](.github/workflows/frontend.yml)). It builds `ghcr.io/renteadan/todo-<app>`, tags it `sha-<commit>` and `latest`, and dates the image by the commit. Changes to `k8s/` or Markdown files don't trigger a build. Nothing is committed back to git.
 - Argo CD Image Updater sees the new tag in GHCR within 2 minutes and sets it on the app's Argo CD Application, which rolls out the new version. The Applications and the updater's config live in the `docker-stacks` repo. Rollback steps are in [backend/k8s/README.md](backend/k8s/README.md#how-a-release-flows).
 - The backend applies pending Prisma migrations when each pod starts.
-- The frontend calls the API server-side through `BACKEND_URL` (`http://todo-backend` in the cluster). The browser opens its socket.io connection to `BACKEND_PUBLIC_URL` (`https://api.renteadan.com`).
+- The frontend calls the API server-side through `BACKEND_URL` (`http://todo-backend` in the cluster). The browser opens its socket.io connection to `BACKEND_PUBLIC_URL` (`https://api.home.renteadan.com`).
 - Clients get live task updates over socket.io on the API's port (`/socket.io/`, WebSocket transport only). With `REDIS_URL` set, as in the cluster, events go through Redis so every API pod can deliver them. Without it, they stay in one process. With `NODE_ENV=production` (set by the Dockerfile), the API refuses to start without `REDIS_URL`.
 - Secrets (`postgres-credentials`, `todo-backend-env`, `ghcr-pull`) are created by hand with `kubectl` and are never in git.
 

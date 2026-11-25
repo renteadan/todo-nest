@@ -16,10 +16,10 @@ The web app for todo: Next.js 16 (App Router, Server Actions) with Tailwind 4. T
 
 ## Environment
 
-| Variable             | What for                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `BACKEND_URL`        | Where the server calls the API, e.g. `http://localhost:3001`. In the cluster: `http://todo-backend`.                                  |
-| `BACKEND_PUBLIC_URL` | Where the browser opens its socket.io connection. In the cluster: `https://api.renteadan.com`. Live updates are off when it is unset. |
+| Variable             | What for                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `BACKEND_URL`        | Where the server calls the API, e.g. `http://localhost:3001`. In the cluster: `http://todo-backend`.                                       |
+| `BACKEND_PUBLIC_URL` | Where the browser opens its socket.io connection. In the cluster: `https://api.home.renteadan.com`. Live updates are off when it is unset. |
 
 Put local values in `.env.local`.
 

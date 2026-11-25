@@ -50,7 +50,7 @@ spec:
             - name: BACKEND_URL # read server-side by the signup Server Action
               value: http://todo-backend
             - name: BACKEND_PUBLIC_URL # the browser opens its socket.io connection here
-              value: https://api.renteadan.com
+              value: https://api.home.renteadan.com
           readinessProbe:
             httpGet:
               path: /
