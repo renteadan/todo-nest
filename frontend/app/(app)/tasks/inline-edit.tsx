@@ -9,7 +9,7 @@ import {
   useTransition,
 } from 'react';
 import { reportError } from './action-error';
-import { DateTimePicker } from './date-picker';
+import { DateTimePicker, formatLocal } from './date-picker';
 import { localToUtc, utcToLocal } from './local-time';
 
 type Limits = {
@@ -108,7 +108,7 @@ export function EditableDateTime({
   label,
 }: {
   value: string;
-  save: (utc: string) => Promise<string | undefined>;
+  save?: (utc: string) => Promise<string | undefined>;
   label: string;
 }) {
   const [shown, setShown] = useOptimistic(value);
@@ -119,6 +119,11 @@ export function EditableDateTime({
     () => utcToLocal(shown),
     () => '',
   );
+
+  if (!save)
+    return local ? (
+      <span className="text-sm text-muted">{formatLocal(local)}</span>
+    ) : null;
 
   const commit = (utc: string) =>
     startTransition(async () => {
@@ -141,7 +146,8 @@ export function EditableDateTime({
 
 /**
  * Text that turns into an input when clicked, for a task's title or details.
- * Shows the new text right away while the save runs.
+ * Shows the new text right away while the save runs; without `save` it is
+ * plain text.
  */
 export function EditableText({
   value,
@@ -152,7 +158,7 @@ export function EditableText({
   ...limits
 }: Limits & {
   value: string;
-  save: (value: string) => Promise<string | undefined>;
+  save?: (value: string) => Promise<string | undefined>;
   /** e.g. "Task name": the trigger is "Edit task name: …". */
   label: string;
   /** Shown (faintly, on row hover) when the value is empty. */
@@ -163,6 +169,10 @@ export function EditableText({
   const [shown, setShown] = useOptimistic(value);
   const [, startTransition] = useTransition();
 
+  if (!save)
+    return value ? (
+      <span className={`break-words ${className ?? ''}`}>{value}</span>
+    ) : null;
   if (editing) {
     return (
       <InlineInput

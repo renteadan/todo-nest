@@ -14,6 +14,7 @@ export function ConfirmDelete({
   title,
   message,
   label,
+  confirmLabel = 'Delete',
   className,
   children,
 }: {
@@ -22,6 +23,8 @@ export function ConfirmDelete({
   message: string;
   /** Accessible name of the trigger, for icon-only buttons. */
   label?: string;
+  /** The confirm button's text. */
+  confirmLabel?: string;
   className: string;
   children: React.ReactNode;
 }) {
@@ -72,7 +75,7 @@ export function ConfirmDelete({
                 }
                 className="btn-delete"
               >
-                {pending ? 'Deleting…' : 'Delete'}
+                {pending ? `${confirmLabel}…` : confirmLabel}
               </button>
             </div>
           </dialog>,

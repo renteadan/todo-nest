@@ -1,9 +1,9 @@
 import { cache, Suspense } from 'react';
 import { authFetch } from '../../lib/session';
-import { ActionErrors } from './action-error';
 import {
   deleteTask,
   deleteTasklist,
+  removeMember,
   renameTask,
   renameTasklist,
   setTaskDeadline,
@@ -13,7 +13,7 @@ import { ConfirmDelete } from './confirm-delete';
 import { CreateTaskForm } from './create-task-form';
 import { EditableDateTime, EditableText } from './inline-edit';
 import { ListShell } from './list-shell';
-import { LiveUpdates } from './live-updates';
+import { MembersDialog } from './members-dialog';
 import {
   CompleteButton,
   CreateTasklistForm,
@@ -37,8 +37,11 @@ type Tasklist = {
   title: string;
   userId: number;
   role: 'owner' | 'member' | null;
+  visibility: 'PRIVATE' | 'SHARED';
   Task: Task[];
 };
+
+type Role = 'owner' | 'member';
 
 export default function TasksPage() {
   const loading = <p className="text-muted">Loading…</p>;
@@ -56,14 +59,13 @@ export default function TasksPage() {
       <Suspense fallback={loading}>
         <Lists />
       </Suspense>
-      <ActionErrors />
     </main>
   );
 }
 
 /**
  * Both columns need the same data: cache() makes it one fetch per request.
- * Only the lists the user owns (shared lists get their UI in a later change);
+ * Lists the user owns or joined (not those an admin only sees as admin);
  * `tasks` is the Inbox plus the tasks in those lists.
  */
 const loadBoard = cache(async () => {
@@ -76,7 +78,7 @@ const loadBoard = cache(async () => {
     throw new Error(`Loading lists failed (${listsRes.status})`);
   const inbox: Task[] = await res.json();
   const lists = ((await listsRes.json()) as Tasklist[]).filter(
-    (l) => l.role === 'owner',
+    (l): l is Tasklist & { role: Role } => l.role !== null,
   );
   return { tasks: [...inbox, ...lists.flatMap((l) => l.Task)], lists };
 });
@@ -84,17 +86,13 @@ const loadBoard = cache(async () => {
 async function Inbox() {
   const { tasks } = await loadBoard();
   return (
-    <>
-      {/* Here, not in the static shell, so the env var is read at request time. */}
-      {process.env.BACKEND_PUBLIC_URL && (
-        <LiveUpdates url={process.env.BACKEND_PUBLIC_URL} />
-      )}
-      <Section
-        title="Inbox"
-        listId={null}
-        tasks={tasks.filter((t) => t.taskListId === null)}
-      />
-    </>
+    <Section
+      title="Inbox"
+      listId={null}
+      role="owner"
+      shared={false}
+      tasks={tasks.filter((t) => t.taskListId === null)}
+    />
   );
 }
 
@@ -112,6 +110,8 @@ async function Lists() {
           key={list.id}
           title={list.title}
           listId={list.id}
+          role={list.role}
+          shared={list.visibility === 'SHARED'}
           tasks={tasks.filter((t) => t.taskListId === list.id)}
         />
       ))}
@@ -119,43 +119,74 @@ async function Lists() {
   );
 }
 
-/** One list; `listId` null is the Inbox: always open, styled apart. */
+/**
+ * One list; `listId` null is the Inbox: always open, styled apart. Members of
+ * a list only add and (un)complete tasks; tasks never leave a shared list.
+ */
 function Section({
   title,
   listId,
+  role,
+  shared,
   tasks,
 }: {
   title: string;
   listId: number | null;
+  role: Role;
+  shared: boolean;
   tasks: Task[];
 }) {
   const inbox = listId === null;
+  const owner = role === 'owner';
   return (
     <DropZone listId={listId} className={inbox ? 'section inbox' : 'section'}>
       <ListShell
         storageKey={inbox ? 'inbox' : String(listId)}
         title={title}
-        rename={inbox ? undefined : renameTasklist.bind(null, listId)}
+        rename={inbox || !owner ? undefined : renameTasklist.bind(null, listId)}
+        badge={shared && <span className="tag">Shared</span>}
         titleClassName={inbox ? 'text-3xl' : 'text-2xl'}
         collapsible={!inbox}
         progress={<Progress tasks={tasks} />}
         doneCount={tasks.filter((t) => t.completedAt).length}
         footer={
           !inbox && (
-            <ConfirmDelete
-              action={deleteTasklist.bind(null, listId)}
-              title={`Delete “${title}”?`}
-              message="Tasks you created move to your Inbox; tasks created by other users are permanently deleted."
-              className="btn-danger"
-            >
-              <TrashIcon />
-              Delete list
-            </ConfirmDelete>
+            <>
+              <MembersDialog
+                listId={listId}
+                title={title}
+                owner={owner}
+                shared={shared}
+              />
+              {owner ? (
+                <ConfirmDelete
+                  action={deleteTasklist.bind(null, listId)}
+                  title={`Delete “${title}”?`}
+                  message="Tasks you created move to your Inbox; tasks created by other users are permanently deleted."
+                  className="btn-danger"
+                >
+                  <TrashIcon />
+                  Delete list
+                </ConfirmDelete>
+              ) : (
+                <ConfirmDelete
+                  action={removeMember.bind(null, listId, 'me')}
+                  title={`Leave “${title}”?`}
+                  message="The tasks you added stay in the list. You'll need a new invite to come back."
+                  confirmLabel="Leave"
+                  className="btn-danger"
+                >
+                  Leave list
+                </ConfirmDelete>
+              )}
+            </>
           )
         }
       >
         <TaskItems
           tasks={tasks}
+          owner={owner}
+          shared={shared}
           empty={
             inbox
               ? 'Nothing here. New tasks land in the inbox.'
@@ -176,7 +207,17 @@ function Progress({ tasks }: { tasks: Task[] }) {
   );
 }
 
-function TaskItems({ tasks, empty }: { tasks: Task[]; empty: string }) {
+function TaskItems({
+  tasks,
+  owner,
+  shared,
+  empty,
+}: {
+  tasks: Task[];
+  owner: boolean;
+  shared: boolean;
+  empty: string;
+}) {
   return (
     <div className="px-2 pb-2">
       {tasks.length === 0 ? (
@@ -184,7 +225,7 @@ function TaskItems({ tasks, empty }: { tasks: Task[]; empty: string }) {
       ) : (
         <ul className="flex flex-col">
           {tasks.map((task) => (
-            <TaskRow key={task.id} task={task} />
+            <TaskRow key={task.id} task={task} owner={owner} shared={shared} />
           ))}
         </ul>
       )}
@@ -192,18 +233,34 @@ function TaskItems({ tasks, empty }: { tasks: Task[]; empty: string }) {
   );
 }
 
-function TaskRow({ task }: { task: Task }) {
+/** `owner` false: a member's row, where only the tick works. */
+function TaskRow({
+  task,
+  owner,
+  shared,
+}: {
+  task: Task;
+  owner: boolean;
+  shared: boolean;
+}) {
   const done = Boolean(task.completedAt);
   return (
-    <DraggableTask taskId={task.id} fromListId={task.taskListId} done={done}>
-      <span aria-hidden className="grip">
-        <svg viewBox="0 0 10 16" className="h-4 w-2.5" fill="currentColor">
-          {[3, 8, 13].flatMap((y) => [
-            <circle key={`a${y}`} cx="2.5" cy={y} r="1.3" />,
-            <circle key={`b${y}`} cx="7.5" cy={y} r="1.3" />,
-          ])}
-        </svg>
-      </span>
+    <DraggableTask
+      taskId={task.id}
+      fromListId={task.taskListId}
+      done={done}
+      draggable={!shared}
+    >
+      {!shared && (
+        <span aria-hidden className="grip">
+          <svg viewBox="0 0 10 16" className="h-4 w-2.5" fill="currentColor">
+            {[3, 8, 13].flatMap((y) => [
+              <circle key={`a${y}`} cx="2.5" cy={y} r="1.3" />,
+              <circle key={`b${y}`} cx="7.5" cy={y} r="1.3" />,
+            ])}
+          </svg>
+        </span>
+      )}
       <CompleteButton taskId={task.id} done={done} title={task.title}>
         <svg viewBox="0 0 16 16" aria-hidden className="size-3">
           <path
@@ -217,7 +274,7 @@ function TaskRow({ task }: { task: Task }) {
       <div className="flex min-w-0 flex-1 flex-col items-start">
         <EditableText
           value={task.title}
-          save={renameTask.bind(null, task.id)}
+          save={owner ? renameTask.bind(null, task.id) : undefined}
           label="Task name"
           max={50}
           trim
@@ -227,7 +284,7 @@ function TaskRow({ task }: { task: Task }) {
         />
         <EditableText
           value={task.description ?? ''}
-          save={setTaskDetails.bind(null, task.id)}
+          save={owner ? setTaskDetails.bind(null, task.id) : undefined}
           label="Details"
           placeholder="Add details"
           max={200}
@@ -236,19 +293,21 @@ function TaskRow({ task }: { task: Task }) {
         />
         <EditableDateTime
           value={task.deadline ?? ''}
-          save={setTaskDeadline.bind(null, task.id)}
+          save={owner ? setTaskDeadline.bind(null, task.id) : undefined}
           label={`Deadline of ${task.title}`}
         />
       </div>
-      <ConfirmDelete
-        action={deleteTask.bind(null, task.id)}
-        title={`Delete “${task.title}”?`}
-        message="This task will be gone for good. This can't be undone."
-        label={`Delete ${task.title}`}
-        className="icon-danger"
-      >
-        <TrashIcon />
-      </ConfirmDelete>
+      {owner && (
+        <ConfirmDelete
+          action={deleteTask.bind(null, task.id)}
+          title={`Delete “${task.title}”?`}
+          message="This task will be gone for good. This can't be undone."
+          label={`Delete ${task.title}`}
+          className="icon-danger"
+        >
+          <TrashIcon />
+        </ConfirmDelete>
+      )}
     </DraggableTask>
   );
 }

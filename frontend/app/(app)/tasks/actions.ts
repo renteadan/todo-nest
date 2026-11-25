@@ -126,3 +126,46 @@ export async function moveTask(
 export async function getAccessToken() {
   return requireToken();
 }
+
+export type Member = {
+  id: number;
+  name: string | null;
+  email: string;
+  role: 'owner' | 'member';
+  /** null = invite not accepted yet. */
+  acceptedAt: string | null;
+};
+
+/** The list's owner first, then members and pending invites. */
+export async function getMembers(
+  listId: number,
+): Promise<{ members: Member[] } | { error: string }> {
+  const res = await authFetch(`/tasklist/${listId}/member`).catch((e) => {
+    unstable_rethrow(e);
+    return null;
+  });
+  if (!res?.ok) return { error: 'Could not load the members.' };
+  return { members: await res.json() };
+}
+
+/** The first invite makes the list shared for good. */
+export async function inviteMember(listId: number, email: string) {
+  return send(`/tasklist/${listId}/member`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** Kicks a member or cancels an invite; `'me'` leaves the list or declines. */
+export async function removeMember(listId: number, userId: number | 'me') {
+  return send(`/tasklist/${listId}/member/${userId}`, { method: 'DELETE' });
+}
+
+export async function acceptInvite(listId: number) {
+  return send(`/tasklist/${listId}/member/me/accept`, { method: 'POST' });
+}
+
+export async function markAllRead() {
+  return send('/notification/read-all', { method: 'POST' });
+}
