@@ -27,6 +27,7 @@ COPY --from=build --chown=node:node /app/src/prisma ./src/prisma
 USER node
 EXPOSE 3000
 # Applies pending migrations, then replaces the shell with node (exec), so node
-# is PID 1 and gets SIGTERM directly. Several pods starting at once is safe:
+# is PID 1 and gets SIGTERM directly. Source maps (emitted by tsc into dist)
+# make stack traces point at the .ts lines. Several pods starting at once is safe:
 # Prisma takes an advisory lock, and the others wait and find nothing to apply.
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --config prisma7.config.ts && exec node dist/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --config prisma7.config.ts && exec node --enable-source-maps dist/main.js"]
