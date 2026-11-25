@@ -36,7 +36,7 @@ test('create a task and a list, then drag the task into the list', async ({
 });
 
 for (const scheme of ['light', 'dark'] as const) {
-  test(`a ticked task has a dark tick on marigold (${scheme})`, async ({
+  test(`a ticked task's tick stands out from its disc (${scheme})`, async ({
     page,
     request,
   }) => {
@@ -50,9 +50,11 @@ for (const scheme of ['light', 'dark'] as const) {
     await expect(
       page.getByRole('button', { name: 'Reopen Water plants' }),
     ).toHaveAttribute('aria-pressed', 'true');
-    expect(
-      await luminance(page, '.check[aria-pressed="true"]', 'color'),
-    ).toBeLessThan(0.1);
+    const tick = await luminance(page, '.check[aria-pressed="true"]', 'color');
+    const disc = await luminance(page, '.check[aria-pressed="true"]');
+    // WCAG contrast ratio for a graphic: 3:1 or better.
+    const ratio = (Math.max(tick, disc) + 0.05) / (Math.min(tick, disc) + 0.05);
+    expect(ratio).toBeGreaterThanOrEqual(3);
   });
 }
 

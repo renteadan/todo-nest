@@ -10,12 +10,14 @@ import { ThemeSwitch } from './theme-switch';
 export function Navbar() {
   return (
     <nav className="navbar">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-2.5">
-        <Link href="/tasks" className="display text-2xl">
+      <div className="mx-auto flex h-(--nav-height) max-w-6xl items-center justify-between px-5 sm:px-8">
+        <Link href="/tasks" className="wordmark">
           Todo
         </Link>
-        <div className="flex items-center gap-5">
-          <ThemeSwitch />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="mr-2 sm:mr-4">
+            <ThemeSwitch />
+          </div>
           {/* Reads the session, so it streams in at request time. */}
           <Suspense fallback={null}>
             <NotificationBell />

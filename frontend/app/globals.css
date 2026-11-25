@@ -1,19 +1,23 @@
+/* Hallmark · shape: app screen · genre: editorial · theme: Atelier (deal 1/3, seed phone-first-todo-app-lists-4bec·0ebd64cd·2026-11-25·r0) · redesign: full
+ * nav: kept, a hairline top bar with the wordmark in Sentient · signature: the capture line, a task written on a ruled line in the serif, over ruled lists · states: loading, empty, error, limit, offline-free
+ * axes: light/roman-serif/cool · posture: restrained · contrast: pass · modes: light+dark · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V4 · weakest: H, every list was the same bordered box; lists, the Inbox included, are now ruled sections */
+/* Hallmark · dismissed F4 · .btn-delete only appears inside the confirm dialog, which is its own page with one filled action */
+/* Hallmark · dismissed 70 · the Complete or Reopen label is an aria-label on a button that calls the setCompleted server action, not a success message */
+/* Hallmark · answered F19 · Hanken 500 stays on buttons and labels: an app screen of controls needs the step that 400 alone cannot give */
 @import 'tailwindcss';
+@import './tokens.css';
+@import './base.css' layer(base);
 
-/* Follows the system theme; the navbar switch pins one (theme-switch.tsx). */
+/* Follows the system theme; the navbar switch pins one (theme-switch.tsx).
+   light-dark() in tokens.css resolves against this color-scheme. */
 :root {
   color-scheme: light dark;
-  --background: light-dark(#e1e5dc, #0e1613);
-  --foreground: light-dark(#16302a, #e4ece6);
-  --surface: light-dark(#eef0ea, #16211d);
-  --muted: light-dark(#56665e, #93a69c);
-  --line: light-dark(#cbd3c9, #2a3832);
-  --mark: light-dark(#e3a21a, #f0b232);
-  --danger: light-dark(#b4321f, #e0553e);
-  /* Text on marigold stays dark in both themes. */
-  --on-mark: #16302a;
-  /* Switch knob: lighter than the track in both themes. */
-  --knob: light-dark(#f8f9f5, #e4ece6);
+  /* Cotton fibre for card stock: grey noise, tinted by the card under it. */
+  --fibre: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.05'/%3E%3C/svg%3E");
+  /* Limewash grain for the auth panel. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.07'/%3E%3C/svg%3E");
+  --nav-height: 64px;
 }
 
 :root[data-theme='light'] {
@@ -24,38 +28,20 @@
   color-scheme: dark;
 }
 
+/* The project's own names, pointed at the Atelier roles. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-mark: var(--mark);
-  --color-danger: var(--danger);
-  --font-sans: var(--font-bricolage);
-  /* Menus, the date picker, dialogs and the login demo card. */
-  --shadow-float: 0 16px 40px -16px rgb(22 48 42 / 0.45);
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-bricolage), system-ui, sans-serif;
-}
-
-::selection {
-  background: color-mix(in srgb, var(--mark) 35%, transparent);
-  color: var(--foreground);
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --color-surface: var(--color-card);
+  --color-line: var(--color-rule);
+  --color-mark: var(--color-accent);
+  --color-danger: var(--color-error);
+  --font-sans: var(--font-body);
 }
 
 input,
 textarea {
-  caret-color: var(--mark);
-}
-
-:focus-visible {
-  outline: 2px solid var(--mark);
-  outline-offset: 2px;
+  caret-color: var(--color-accent);
 }
 
 /* A list's "Show completed" switch is off (tasks/list-shell.tsx). */
@@ -64,92 +50,380 @@ textarea {
 }
 
 @layer components {
-  /* Condensed, heavy cut of the same family for titles. */
+  /* Every title: Sentient light, roman, one weight a head. */
   .display {
-    font-weight: 750;
-    font-stretch: 75%;
-    letter-spacing: -0.01em;
-    line-height: 1;
+    font-family: var(--font-display);
+    font-weight: var(--display-weight);
+    letter-spacing: var(--tracking-display);
+    line-height: 1.05;
+    overflow-wrap: break-word;
+    min-width: 0;
+  }
+
+  /* Cotton card stock: fibre, one light from the top left. */
+  .stock {
+    border-radius: var(--radius-card);
+    background:
+      var(--fibre) 0 0 / 220px,
+      linear-gradient(
+        160deg,
+        var(--card-lit),
+        var(--color-card) 55%,
+        var(--card-shade)
+      );
+    box-shadow:
+      var(--shadow-card),
+      inset 1px 1px 0 var(--lit);
   }
 
   .field {
-    @apply rounded-lg border border-line bg-surface px-3 py-2 placeholder:text-muted;
+    min-height: 40px;
+    border: 1px solid var(--color-field-edge);
+    border-radius: var(--radius-pill);
+    background: var(--color-card);
+    padding: var(--space-xs) var(--space-sm);
+    color: var(--color-ink);
+    transition: border-color var(--dur-micro) var(--ease-out);
   }
 
+  .field::placeholder {
+    color: var(--color-muted);
+  }
+
+  .field:hover {
+    border-color: var(--color-muted);
+  }
+
+  .field:focus-visible {
+    outline-offset: -1px;
+    border-color: var(--color-focus);
+  }
+
+  .field:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  /* The capture line: a task is written on a ruled line, in the serif. */
+  /* 48px like Add task and the create-list row (e2e: rows line up). */
+  .capture .field,
+  .list-create .field {
+    height: 48px;
+  }
+
+  .capture .field {
+    border-width: 0 0 1px;
+    border-color: var(--color-ink);
+    border-radius: 0;
+    background: transparent;
+    padding-inline: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--display-weight);
+    letter-spacing: var(--tracking-display);
+  }
+
+  .capture .field:focus-visible {
+    outline: none;
+    border-color: var(--color-focus);
+    box-shadow: 0 1px 0 var(--color-focus);
+  }
+
+  /* Details and deadline: quieter ruled lines under the capture line. */
+  .capture-meta .field {
+    min-height: 40px;
+    border-width: 0 0 1px;
+    border-radius: 0;
+    background: transparent;
+    padding-inline: 0;
+  }
+
+  .capture-meta .field:focus-visible {
+    outline: none;
+    border-color: var(--color-focus);
+    box-shadow: 0 1px 0 var(--color-focus);
+  }
+
+  /* New list: room on the right for the button inside the field. */
+  .list-create .field {
+    padding-left: var(--space-xl);
+    padding-right: 8.5rem;
+  }
+
+  .field-icon {
+    position: absolute;
+    top: 0;
+    left: var(--space-md);
+    display: grid;
+    height: 48px;
+    place-items: center;
+    color: var(--color-muted);
+    pointer-events: none;
+  }
+
+  .list-create:focus-within .field-icon {
+    color: var(--color-ink);
+  }
+
+  /* A text button inside a field's border, full height, on its right. */
+  .field-action {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-flex;
+    height: 48px;
+    align-items: center;
+    padding: 0 var(--space-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--color-ink);
+    isolation: isolate;
+  }
+
+  /* A tinted chip, inset so it never covers the field's border. */
+  .field-action::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    z-index: -1;
+    border-radius: var(--radius-pill);
+    background: var(--color-ink);
+    opacity: 0.06;
+    transition: opacity var(--dur-micro) var(--ease-out);
+  }
+
+  .field-action:hover::before {
+    opacity: 0.11;
+  }
+
+  .field-action:active::before {
+    opacity: 0.16;
+  }
+
+  .field-action:focus-visible {
+    outline-offset: -4px;
+  }
+
+  .field-action:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .btn,
+  .btn-quiet,
+  .btn-delete {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-lg);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    transition:
+      background-color var(--dur-short) var(--ease-out),
+      border-color var(--dur-short) var(--ease-out),
+      color var(--dur-short) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
+  }
+
+  /* The one filled control on a screen: ink, never a colour. */
   .btn {
-    @apply rounded-lg border border-transparent bg-foreground px-5 py-2 font-medium text-background hover:bg-foreground/90 disabled:opacity-50 transition-colors motion-reduce:transition-none;
+    background: linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--color-ink) 86%, var(--color-paper)),
+        var(--color-ink)
+      )
+      var(--color-ink);
+    color: var(--color-paper);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, var(--color-paper) 22%, transparent),
+      0 1px 2px var(--color-scrim);
+  }
+
+  .btn:hover {
+    background-color: var(--color-ink-2);
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-ink) 76%, var(--color-paper)),
+      var(--color-ink-2)
+    );
+  }
+
+  .btn:active {
+    box-shadow: inset 0 1px 2px var(--color-scrim);
   }
 
   .btn-quiet {
-    @apply rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-line/40 disabled:opacity-50 transition-colors motion-reduce:transition-none;
+    border-color: var(--color-field-edge);
+    color: var(--color-ink);
   }
 
-  .btn-danger {
-    @apply flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-danger hover:text-danger motion-reduce:transition-none;
+  .btn-quiet:hover {
+    border-color: var(--color-ink);
   }
 
   .btn-delete {
-    @apply rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 disabled:opacity-50 transition motion-reduce:transition-none;
+    background: var(--color-error);
+    color: var(--color-paper);
   }
 
-  /* Task-row delete: a soft red disc on hover, with the bin's lid lifting. */
+  .btn-delete:hover {
+    background: color-mix(in oklab, var(--color-error) 86%, var(--color-ink));
+  }
+
+  :is(.btn, .btn-quiet, .btn-delete):active {
+    transform: translateY(1px);
+  }
+
+  :is(.btn, .btn-quiet, .btn-delete):disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* A list's quiet footer actions: type, not boxes. */
+  .btn-danger,
+  .btn-text {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    gap: var(--space-xs);
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-xs);
+    font-size: var(--text-sm);
+    color: var(--color-muted);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.25em;
+    transition:
+      color var(--dur-short) var(--ease-out),
+      text-decoration-color var(--dur-short) var(--ease-out);
+  }
+
+  .btn-text:hover {
+    color: var(--color-ink);
+    text-decoration-color: var(--color-accent);
+  }
+
+  .btn-danger:hover {
+    color: var(--color-error);
+    text-decoration-color: currentColor;
+  }
+
+  :is(.btn-danger, .btn-text):active {
+    color: var(--color-ink);
+  }
+
+  :is(.btn-danger, .btn-text):disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  /* Underlined link: slate underline, the accent's main job. */
+  .link {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 0.22em;
+    transition: text-decoration-color var(--dur-short) var(--ease-out);
+  }
+
+  .link:hover {
+    text-decoration-color: var(--color-ink);
+  }
+
+  /* Task-row delete: the bin turns red, its lid lifting. */
   .icon-danger {
-    @apply grid size-8 shrink-0 place-items-center rounded-full text-muted transition motion-reduce:transition-none;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    color: var(--color-muted);
+    transition:
+      color var(--dur-short) var(--ease-out),
+      background-color var(--dur-short) var(--ease-out),
+      opacity var(--dur-short) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
   }
 
   .icon-danger:hover,
   .icon-danger:focus-visible {
-    @apply text-danger;
-    background: color-mix(in srgb, var(--danger) 14%, transparent);
+    color: var(--color-error);
+    background: color-mix(in oklab, var(--color-error) 10%, transparent);
   }
 
   .icon-danger:active {
-    @apply scale-90;
+    transform: scale(0.92);
   }
 
   /* Only hidden where hovering is possible; touch screens always show it. */
   @media (hover: hover) {
     .icon-danger {
-      @apply opacity-0;
+      opacity: 0;
     }
     .task-row:hover .icon-danger,
     .icon-danger:focus-visible {
-      @apply opacity-100;
+      opacity: 1;
     }
   }
 
   .trash-lid {
     transform-box: fill-box;
     transform-origin: 0% 100%;
-    transition: transform 150ms ease-out;
+    transition: transform var(--dur-short) var(--ease-out);
   }
 
   :is(.icon-danger, .btn-danger):hover .trash-lid {
     transform: translateY(-1px) rotate(-12deg);
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .trash-lid {
-      transition: none;
-    }
-  }
-
   .confirm {
-    @apply m-auto w-[calc(100%-2rem)] max-w-sm overflow-hidden rounded-2xl border border-line bg-surface p-0 text-foreground shadow-float;
+    margin: auto;
+    width: calc(100% - 2rem);
+    max-width: 26rem;
+    overflow: hidden;
+    border: 0;
+    padding: 0;
+    color: var(--color-ink);
   }
 
   .confirm::backdrop {
-    background: color-mix(in srgb, #0e1915 45%, transparent);
-    backdrop-filter: blur(2px);
+    background: var(--color-scrim);
+  }
+
+  .dialog-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-xs);
+    border-top: 1px solid var(--color-rule);
+    background: color-mix(in oklab, var(--color-paper) 60%, transparent);
+    padding: var(--space-md) var(--space-lg);
   }
 
   /* Click-to-edit text: looks like text, hints it is editable on hover. */
   .editable {
-    @apply -mx-1 max-w-full rounded px-1 text-left break-words hover:bg-line/40 transition-colors motion-reduce:transition-none;
+    margin-inline: calc(var(--space-2xs) * -1);
+    max-width: 100%;
+    border-radius: var(--radius-pill);
+    padding-inline: var(--space-2xs);
+    text-align: left;
+    overflow-wrap: break-word;
+    transition: background-color var(--dur-micro) var(--ease-out);
+  }
+
+  .editable:hover {
+    background: color-mix(in oklab, var(--color-ink) 6%, transparent);
   }
 
   .editable-empty {
-    @apply text-muted/70 italic;
+    color: var(--color-pencil);
   }
 
   /* Out of sight until the row is hovered, but still reachable by keyboard
@@ -167,61 +441,148 @@ textarea {
   }
 
   .inline-field {
-    @apply -mx-1 w-full rounded border border-line bg-surface px-1 outline-none focus:border-mark aria-invalid:border-danger;
+    margin-inline: calc(var(--space-2xs) * -1);
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--color-ink);
+    background: transparent;
+    padding-inline: var(--space-2xs);
+    outline: none;
+  }
+
+  .inline-field:focus-visible {
+    border-color: var(--color-focus);
+    box-shadow: 0 1px 0 var(--color-focus);
+  }
+
+  .inline-field[aria-invalid='true'] {
+    border-color: var(--color-error);
   }
 
   /* Small icon button that shows on header hover, e.g. rename a list. */
   .icon-quiet {
-    @apply grid size-8 shrink-0 place-items-center rounded-full text-muted hover:bg-line/60 hover:text-foreground transition-colors motion-reduce:transition-none;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    color: var(--color-muted);
+    transition:
+      color var(--dur-short) var(--ease-out),
+      background-color var(--dur-short) var(--ease-out),
+      opacity var(--dur-short) var(--ease-out);
+  }
+
+  .icon-quiet:hover {
+    color: var(--color-ink);
+    background: color-mix(in oklab, var(--color-ink) 6%, transparent);
   }
 
   @media (hover: hover) {
     .icon-quiet {
-      @apply opacity-0;
+      opacity: 0;
     }
     .section-head:hover .icon-quiet,
     .icon-quiet:focus-visible {
-      @apply opacity-100;
+      opacity: 1;
     }
   }
 
   /* Deadline picker (tasks/date-picker.tsx). */
   .picker {
-    @apply absolute top-full z-30 mt-2 flex w-72 flex-col gap-3 rounded-2xl border border-line bg-surface p-3 text-base font-normal text-foreground not-italic shadow-float;
+    position: absolute;
+    top: 100%;
+    z-index: var(--z-dropdown);
+    margin-top: var(--space-xs);
+    display: flex;
+    width: 18rem;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    font-size: var(--text-md);
+    font-weight: 400;
+    font-style: normal;
+    color: var(--color-ink);
+    border-radius: var(--radius-card);
+    background:
+      var(--fibre) 0 0 / 220px,
+      var(--color-card);
+    box-shadow: var(--shadow-float);
   }
 
   @media (width < 40rem) {
     .picker {
-      @apply fixed inset-x-4 top-auto bottom-4 mt-0 w-auto;
+      position: fixed;
+      inset: auto var(--space-md) var(--space-md);
+      margin-top: 0;
+      width: auto;
     }
   }
 
   .picker-nav {
-    @apply grid size-8 place-items-center rounded-full text-muted hover:bg-line/60 hover:text-foreground transition-colors motion-reduce:transition-none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    color: var(--color-muted);
+    transition:
+      color var(--dur-micro) var(--ease-out),
+      background-color var(--dur-micro) var(--ease-out);
+  }
+
+  .picker-nav:hover {
+    color: var(--color-ink);
+    background: color-mix(in oklab, var(--color-ink) 6%, transparent);
   }
 
   .picker-day {
-    @apply grid aspect-square place-items-center rounded-full text-sm tabular-nums hover:bg-line/60 transition-colors motion-reduce:transition-none;
+    display: grid;
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: 50%;
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    transition: background-color var(--dur-micro) var(--ease-out);
+  }
+
+  .picker-day:hover {
+    background: color-mix(in oklab, var(--color-ink) 7%, transparent);
   }
 
   .picker-day[data-outside] {
-    @apply text-muted/50;
+    color: var(--color-pencil);
   }
 
+  /* Today: a blind impression, a ring pressed into the card. */
   .picker-day[aria-current='date'] {
-    @apply font-bold ring-2 ring-mark ring-inset;
+    box-shadow: inset 0 0 0 1px var(--color-accent);
   }
 
   .picker-day[aria-pressed='true'] {
-    @apply bg-foreground font-semibold text-background;
+    background: var(--color-ink);
+    color: var(--color-paper);
   }
 
   .picker-chip {
-    @apply rounded-full border border-line px-3 py-1 text-xs font-medium text-muted hover:border-foreground hover:text-foreground transition-colors motion-reduce:transition-none;
+    border: 1px solid var(--color-field-edge);
+    border-radius: var(--radius-pill);
+    padding: var(--space-2xs) var(--space-sm);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
+    transition: border-color var(--dur-micro) var(--ease-out);
+  }
+
+  .picker-chip:hover {
+    border-color: var(--color-ink);
   }
 
   .picker-time {
-    @apply px-2 py-1.5 text-sm tabular-nums;
+    min-height: 32px;
+    padding: var(--space-2xs) var(--space-xs);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
   }
 
   .picker-time::-webkit-calendar-picker-indicator {
@@ -229,111 +590,220 @@ textarea {
   }
 
   .picker-ok {
-    @apply grid size-9 place-items-center rounded-full bg-mark text-(--on-mark) transition hover:brightness-105 active:scale-90 disabled:opacity-50 motion-reduce:transition-none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    transition:
+      background-color var(--dur-micro) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
   }
 
+  .picker-ok:hover {
+    background: var(--color-ink-2);
+  }
+
+  .picker-ok:active {
+    transform: scale(0.92);
+  }
+
+  .picker-ok:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  /* The create forms: a bordered card, lighter than the paper, so making
+     things reads apart from the lists they make. */
+  .well {
+    border: 1px solid
+      color-mix(in oklab, var(--color-field-edge) 55%, var(--color-card));
+    border-radius: var(--radius-card);
+    background: var(--color-card);
+    padding: var(--space-lg) var(--space-lg) var(--space-sm);
+  }
+
+  /* A list: opens on an ink rule, its rows on hairlines. No box. */
   .section {
-    @apply rounded-xl border border-line bg-surface transition-colors motion-reduce:transition-none;
-  }
-
-  /* The inbox is tinted marigold: it is where new work lands. */
-  .inbox {
-    --surface: light-dark(#f2e9d0, #241f12);
-    --background: light-dark(#e9d9ae, #1c180d);
-    --line: light-dark(#d9c48c, #463b1f);
-    --muted: light-dark(#65562f, #bfae88);
+    border-top: 1px solid var(--color-ink);
+    transition: background-color var(--dur-short) var(--ease-out);
   }
 
   /* The one loud moment: the list you are dragging a task over. */
   .drop-zone {
+    outline: 1px solid transparent;
+    outline-offset: 6px;
+    /* The outline switches instantly: it doubles as a ring (gate 15). */
     transition:
-      border-color 180ms ease-out,
-      background-color 180ms ease-out,
-      box-shadow 180ms ease-out,
-      opacity 180ms ease-out;
+      background-color var(--dur-short) var(--ease-out),
+      opacity var(--dur-short) var(--ease-out);
   }
 
   .drop-zone[data-over] {
-    border-color: var(--mark);
-    background: color-mix(in srgb, var(--mark) 12%, var(--surface));
-    box-shadow:
-      0 0 0 2px var(--mark),
-      0 12px 32px -18px var(--mark);
+    outline-color: var(--color-accent);
+  }
+
+  .drop-zone.section[data-over] {
+    background: color-mix(in oklab, var(--color-accent) 6%, transparent);
   }
 
   .drop-zone[aria-busy='true'] {
-    @apply opacity-70;
+    opacity: 0.7;
   }
 
   /* Drag image: the row is styled as a lifted card only while the browser
      snapshots it (tasklist-forms.tsx). */
   .task-row[data-lifting] {
-    @apply bg-surface ring-1 ring-mark transition-none;
+    background: var(--color-card);
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+    transition: none;
   }
 
   /* What stays behind while dragging: an empty dashed slot. */
   .task-row[data-dragging] {
-    @apply outline-2 -outline-offset-2 outline-line outline-dashed;
-    background: color-mix(in srgb, var(--line) 30%, transparent);
+    outline: 1px dashed var(--color-field-edge);
+    outline-offset: -1px;
+    background: color-mix(in oklab, var(--color-ink) 4%, transparent);
   }
 
   .task-row[data-dragging] > * {
-    @apply opacity-0;
+    opacity: 0;
   }
 
-  /* A task just dropped into this list settles in with a marigold flash. */
+  /* A task just dropped into this list settles in. */
   .task-row[data-landed] {
-    animation: task-land 600ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .drop-zone {
-      transition: none;
-    }
-    .task-row[data-landed] {
-      animation: none;
-    }
+    animation: task-land 600ms var(--ease-out);
   }
 
   .section-head {
-    @apply flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--space-md);
+    row-gap: var(--space-2xs);
+    padding: var(--space-md) var(--space-xs) var(--space-sm);
+  }
+
+  .section-head h2 {
+    max-width: none;
   }
 
   .task-row {
-    @apply flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-line/40 transition-colors motion-reduce:transition-none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    border-radius: var(--radius-pill);
+    padding: var(--space-sm) var(--space-xs);
+    transition: background-color var(--dur-micro) var(--ease-out);
+  }
+
+  /* Hairlines between rows, drawn inside the padding so they never touch the card edge. */
+  .task-row + .task-row {
+    box-shadow: inset 0 1px 0 var(--color-rule);
+  }
+
+  .task-row:hover {
+    background: color-mix(in oklab, var(--color-ink) 4%, transparent);
   }
 
   .grip {
-    @apply cursor-grab text-muted/50 hover:text-muted active:cursor-grabbing transition-colors motion-reduce:transition-none;
+    cursor: grab;
+    color: var(--color-grip);
+    transition: color var(--dur-micro) var(--ease-out);
+  }
+
+  .task-row:hover .grip {
+    color: var(--color-muted);
+  }
+
+  .grip:active {
+    cursor: grabbing;
   }
 
   .check {
-    @apply grid size-5 place-items-center rounded-full border-2 border-muted text-transparent hover:border-foreground transition-colors motion-reduce:transition-none;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border: 1px solid var(--color-field-edge);
+    border-radius: 50%;
+    color: transparent;
+    transition:
+      border-color var(--dur-micro) var(--ease-out),
+      background-color var(--dur-micro) var(--ease-out),
+      color var(--dur-micro) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
+  }
+
+  .check:hover {
+    border-color: var(--color-ink);
+    color: var(--color-muted);
+  }
+
+  .check:active {
+    transform: scale(0.9);
+  }
+
+  .check:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   .check[aria-pressed='true'] {
-    @apply border-mark bg-mark text-(--on-mark);
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-paper);
   }
 
   .switch-label {
-    @apply flex cursor-pointer items-center gap-2 text-sm text-muted select-none hover:text-foreground transition-colors motion-reduce:transition-none;
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--text-sm);
+    color: var(--color-muted);
+    user-select: none;
+    transition: color var(--dur-micro) var(--ease-out);
   }
 
-  /* A small pill switch; the knob slides over and the track turns marigold. */
+  .switch-label:hover {
+    color: var(--color-ink);
+  }
+
+  /* A small pill switch; the knob slides over and the track turns ink. */
   .switch {
-    @apply relative h-4 w-7 shrink-0 cursor-pointer appearance-none rounded-full bg-line transition-colors motion-reduce:transition-none;
+    position: relative;
+    width: 28px;
+    height: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+    appearance: none;
+    border-radius: 999px;
+    background: var(--color-rule);
+    transition: background-color var(--dur-short) var(--ease-out);
   }
 
   .switch::before {
-    @apply absolute top-0.5 left-0.5 size-3 rounded-full bg-(--knob) shadow-sm transition-transform content-[''] motion-reduce:transition-none;
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-card);
+    transition: transform var(--dur-short) var(--ease-out);
   }
 
   .switch:checked {
-    @apply bg-mark;
+    background: var(--color-ink);
   }
 
   .switch:checked::before {
-    @apply translate-x-3;
+    transform: translateX(12px);
   }
 }
 
@@ -361,127 +831,232 @@ textarea {
   }
 }
 
-/* Top bar of the tasks page, with the profile menu (tasks/page.tsx). */
+/* Top bar of the logged-in pages (navbar.tsx). */
 @layer components {
   .navbar {
-    @apply sticky top-0 z-20 border-b border-line bg-background/85 backdrop-blur;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky-nav);
+    border-bottom: 1px solid var(--color-rule);
+    background: var(--color-paper);
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-weight: var(--serif-small);
+    font-size: var(--text-xl);
+    letter-spacing: var(--tracking-display);
+    line-height: 1;
   }
 
   .profile-btn {
-    @apply grid size-9 place-items-center rounded-full border border-line bg-surface text-muted hover:text-foreground transition-colors motion-reduce:transition-none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--color-muted);
     anchor-name: --profile;
+    transition:
+      color var(--dur-micro) var(--ease-out),
+      background-color var(--dur-micro) var(--ease-out);
+  }
+
+  .profile-btn:hover {
+    color: var(--color-ink);
+    background: color-mix(in oklab, var(--color-ink) 6%, transparent);
   }
 
   /* A popover, so Esc and clicking outside close it with no JS. */
   .menu {
-    @apply w-44 rounded-2xl border border-line bg-surface p-1.5 text-foreground shadow-float;
+    width: 12rem;
+    border: 0;
+    border-radius: var(--radius-card);
+    padding: var(--space-2xs);
+    color: var(--color-ink);
+    background:
+      var(--fibre) 0 0 / 220px,
+      var(--color-card);
+    box-shadow: var(--shadow-float);
     position-anchor: --profile;
     inset: auto;
     top: anchor(bottom);
     right: anchor(right);
-    margin: 0.5rem 0 0;
+    margin: var(--space-xs) 0 0;
   }
 
   .menu-item {
-    @apply flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-line/40 transition-colors motion-reduce:transition-none;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    border-radius: var(--radius-pill);
+    padding: var(--space-xs) var(--space-sm);
+    text-align: left;
+    font-size: var(--text-sm);
+    transition: background-color var(--dur-micro) var(--ease-out);
+  }
+
+  .menu-item:hover {
+    background: color-mix(in oklab, var(--color-ink) 6%, transparent);
   }
 
   /* Notification bell (notification-bell.tsx): the profile button's look, plus a count. */
   .bell-btn {
-    @apply relative;
+    position: relative;
     anchor-name: --bell;
   }
 
   .bell-count {
-    @apply absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-mark px-1 text-[0.625rem] leading-none font-semibold text-(--on-mark) tabular-nums;
+    position: absolute;
+    top: 2px;
+    right: 1px;
+    display: grid;
+    min-width: 16px;
+    height: 16px;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--color-ink);
+    padding: 0 var(--space-2xs);
+    font-size: 0.625rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--color-paper);
+    font-variant-numeric: tabular-nums;
   }
 
   .feed {
-    @apply max-h-[70vh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto;
+    max-height: 70vh;
+    width: 20rem;
+    max-width: calc(100% - 2rem);
+    overflow-y: auto;
     position-anchor: --bell;
   }
 
   .feed-item {
-    @apply flex flex-col items-start gap-2 rounded-lg px-3 py-2.5 text-sm;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    font-size: var(--text-sm);
+  }
+
+  .feed-item + .feed-item {
+    border-top: 1px solid var(--color-rule);
   }
 
   /* Small label: "Shared" beside a list title, "pending" on an invite. */
   .tag {
-    @apply inline-block rounded-full border border-line px-2 py-0.5 align-middle font-sans text-xs font-medium tracking-normal text-muted;
-    font-stretch: normal;
+    display: inline-block;
+    vertical-align: middle;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-xs);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: normal;
+    color: var(--color-muted);
   }
 }
 
 /* Admin page (admin/page.tsx). */
 @layer components {
   .user-link {
-    @apply flex flex-col rounded-lg px-3 py-2 hover:bg-line/40 transition-colors motion-reduce:transition-none;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-xs) var(--space-sm);
+    transition: background-color var(--dur-micro) var(--ease-out);
   }
 
-  /* The picked user: a marigold edge, like the mark on today's date. */
+  .user-link:hover {
+    background: color-mix(in oklab, var(--color-ink) 4%, transparent);
+  }
+
+  /* The picked user: an ink edge, the row a step darker. */
   .user-link[aria-current='page'] {
-    @apply bg-line/40;
-    box-shadow: inset 3px 0 0 var(--mark);
+    background: color-mix(in oklab, var(--color-ink) 6%, transparent);
+    box-shadow: inset 2px 0 0 var(--color-ink);
   }
 
   .admin-table {
-    @apply w-full text-left text-sm;
+    width: 100%;
+    text-align: left;
+    font-size: var(--text-sm);
+    border-collapse: collapse;
   }
 
   .admin-table th {
-    @apply px-3 py-2 font-medium text-muted;
+    padding: var(--space-xs) var(--space-sm);
+    font-weight: 400;
+    color: var(--color-muted);
+    white-space: nowrap;
   }
 
   .admin-table td {
-    @apply border-t border-line px-3 py-2.5 align-top;
+    border-top: 1px solid var(--color-rule);
+    padding: var(--space-sm);
+    vertical-align: top;
   }
 }
 
-/* Login and signup: brand panel beside the form (auth-shell.tsx). */
+/* Login and signup: the limewash panel beside the form (auth-shell.tsx). */
 @layer components {
-  /* The marigold panel and its demo card stay light in both themes. */
   .auth-panel {
-    color-scheme: light;
-    /* Literal values: Lightning CSS compiles light-dark() so it resolves on
-       :root, so color-scheme here alone would not switch them. */
-    --foreground: var(--on-mark);
-    --surface: #eef0ea;
-    --muted: #56665e;
-    --line: #cbd3c9;
-    --mark: #e3a21a;
-    background: var(--mark);
-    color: var(--foreground);
+    position: relative;
+    background:
+      var(--grain) 0 0 / 180px,
+      var(--color-paper-2);
+    border-right: 1px solid var(--color-rule);
   }
 
   .field-label {
-    @apply flex flex-col gap-1.5 text-sm font-medium;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-ink-2);
   }
 
   .field-label .field {
-    @apply py-2.5 text-base font-normal;
+    min-height: 44px;
+    font-size: var(--text-md);
+    font-weight: 400;
   }
 
-  /* The tick demo: one row of a small list ticks itself off, on a loop. */
+  /* The tick demo: a small list on card stock ticks itself off, once. */
   .demo-tab {
-    @apply rounded-xl bg-surface p-4 shadow-float;
+    padding: var(--space-lg);
   }
 
   .demo-check {
-    @apply grid size-4 shrink-0 place-items-center rounded-full border-2 border-muted text-transparent;
+    display: grid;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    place-items: center;
+    border: 1px solid var(--color-field-edge);
+    border-radius: 50%;
+    color: transparent;
+  }
+
+  .demo-row + .demo-row {
+    box-shadow: inset 0 1px 0 var(--color-rule);
   }
 
   .demo-row[data-sync],
   .demo-row[data-sync] .demo-check,
   .demo-row[data-sync] .demo-text {
     /* Longhands: Lightning CSS resets a shorthand that has no name. */
-    animation-duration: 6s;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-    animation-iteration-count: infinite;
+    animation-duration: 900ms;
+    animation-timing-function: var(--ease-out);
+    animation-iteration-count: 1;
+    animation-fill-mode: both;
     animation-delay: var(--delay);
-  }
-
-  .demo-row[data-sync] {
-    animation-name: demo-flash;
   }
 
   .demo-row[data-sync] .demo-check {
@@ -494,86 +1069,87 @@ textarea {
 
   /* No motion: show the end state, ticked. */
   @media (prefers-reduced-motion: reduce) {
-    .demo-row[data-sync],
     .demo-row[data-sync] .demo-check,
     .demo-row[data-sync] .demo-text {
       animation: none;
     }
     .demo-row[data-sync] .demo-check {
-      @apply border-mark bg-mark text-(--on-mark);
+      border-color: var(--color-ink);
+      background: var(--color-ink);
+      color: var(--color-paper);
     }
     .demo-row[data-sync] .demo-text {
-      @apply text-muted line-through;
+      color: var(--color-muted);
+      text-decoration-color: currentColor;
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trash-lid,
+  .drop-zone,
+  .field,
+  .check,
+  .switch,
+  .switch::before,
+  :is(.btn, .btn-quiet, .btn-delete, .btn-danger, .btn-text, .link),
+  .field-action::before,
+  :is(
+    .icon-danger,
+    .icon-quiet,
+    .picker-nav,
+    .picker-day,
+    .picker-chip,
+    .picker-ok
+  ),
+  :is(
+    .editable,
+    .task-row,
+    .grip,
+    .switch-label,
+    .profile-btn,
+    .menu-item,
+    .user-link
+  ) {
+    transition: none;
+  }
+  .task-row[data-landed] {
+    animation: none;
   }
 }
 
 @keyframes task-land {
   from {
-    transform: translateY(-6px) scale(0.98);
+    transform: translateY(-6px);
     opacity: 0;
-    background: color-mix(in srgb, var(--mark) 30%, transparent);
-  }
-  40% {
-    transform: none;
-    opacity: 1;
-    background: color-mix(in srgb, var(--mark) 22%, transparent);
   }
   to {
-    background: transparent;
+    transform: none;
+    opacity: 1;
   }
 }
 
-/* Open until 20%, ticked until 85%, then reset for the next loop. */
+/* Open, then ticked for good. */
 @keyframes demo-tick {
-  0%,
-  20% {
-    border-color: var(--muted);
+  from {
+    border-color: var(--color-field-edge);
     background: transparent;
     color: transparent;
   }
-  24%,
-  85% {
-    border-color: var(--mark);
-    background: var(--mark);
-    color: var(--on-mark);
-  }
-  92%,
-  100% {
-    border-color: var(--muted);
-    background: transparent;
-    color: transparent;
+  to {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-paper);
   }
 }
 
 @keyframes demo-strike {
-  0%,
-  20% {
-    color: var(--foreground);
+  from {
+    color: var(--color-ink);
     text-decoration-color: transparent;
   }
-  24%,
-  85% {
-    color: var(--muted);
+  to {
+    color: var(--color-muted);
     text-decoration-color: currentColor;
-  }
-  92%,
-  100% {
-    color: var(--foreground);
-    text-decoration-color: transparent;
-  }
-}
-
-@keyframes demo-flash {
-  0%,
-  20% {
-    background: transparent;
-  }
-  24% {
-    background: color-mix(in srgb, var(--mark) 24%, transparent);
-  }
-  50%,
-  100% {
-    background: transparent;
   }
 }

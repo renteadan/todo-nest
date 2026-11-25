@@ -49,7 +49,7 @@ export function ConfirmDelete({
             // A click on the backdrop lands on the dialog itself.
             onClick={(e) => e.target === e.currentTarget && setOpen(false)}
             aria-labelledby="confirm-title"
-            className="confirm"
+            className="confirm stock"
           >
             <div className="flex flex-col gap-2 p-6">
               <h2 id="confirm-title" className="display text-2xl">
@@ -57,7 +57,7 @@ export function ConfirmDelete({
               </h2>
               <p className="text-muted">{message}</p>
             </div>
-            <div className="flex justify-end gap-2 border-t border-line bg-background px-6 py-4">
+            <div className="dialog-foot">
               <button
                 autoFocus
                 onClick={() => setOpen(false)}

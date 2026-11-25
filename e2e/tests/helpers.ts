@@ -137,13 +137,16 @@ export async function luminance(
   await expect(element).toBeVisible();
   return element.evaluate(
     (el, [prop, pseudo]) => {
-      const [r, g, b] = getComputedStyle(el, pseudo ?? null)
-        [prop as 'color'].match(/[\d.]+/g)!
-        .map(Number)
-        .map((c) => {
+      // Painted on a 1px canvas, so any colour syntax (rgb, lab, oklch) reads as sRGB.
+      const ctx = document.createElement('canvas').getContext('2d')!;
+      ctx.fillStyle = getComputedStyle(el, pseudo ?? null)[prop as 'color'];
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b] = [...ctx.getImageData(0, 0, 1, 1).data.slice(0, 3)].map(
+        (c) => {
           const s = c / 255;
           return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-        });
+        },
+      );
       return 0.2126 * r + 0.7152 * g + 0.0722 * b;
     },
     [property, pseudo] as const,

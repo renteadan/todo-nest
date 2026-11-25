@@ -105,18 +105,18 @@ export function ListShell({
               <button
                 aria-expanded={open}
                 onClick={() => setPrefs({ open: !open })}
-                className="flex min-w-0 items-center gap-3 text-left"
+                className="flex min-w-0 items-center gap-2.5 text-left"
               >
                 <svg
                   aria-hidden
                   viewBox="0 0 16 16"
-                  className={`size-4 shrink-0 transition-transform motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}
+                  className={`size-3.5 shrink-0 text-muted transition-transform motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}
                 >
                   <path
                     d="M6 3l5 5-5 5"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="1.4"
                   />
                 </svg>
                 <span className="truncate">{shownTitle}</span>
@@ -166,7 +166,7 @@ export function ListShell({
       <div hidden={!open}>
         {children}
         {footer && (
-          <div className="flex justify-end gap-2 px-4 pb-3">{footer}</div>
+          <div className="flex justify-end gap-3 px-1 pt-2">{footer}</div>
         )}
       </div>
     </div>

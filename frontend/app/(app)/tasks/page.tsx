@@ -44,21 +44,25 @@ type Tasklist = {
 type Role = 'owner' | 'member';
 
 export default function TasksPage() {
-  const loading = <p className="text-muted">Loading…</p>;
+  const loading = <p className="py-4 text-muted">Loading…</p>;
   return (
-    <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-10 sm:py-12 lg:grid-cols-2 lg:gap-x-10">
+    <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-x-16 gap-y-10 px-5 pt-10 pb-24 sm:px-8 sm:pt-14 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
       <h1 className="display text-5xl sm:text-6xl lg:col-span-2">Tasks</h1>
-      <div className="flex min-w-0 flex-col gap-6">
-        <CreateTaskForm />
+      <div className="flex min-w-0 flex-col gap-10">
+        <div className="well">
+          <CreateTaskForm />
+        </div>
         {/* Reads the session cookie, so it streams in at request time. */}
         <Suspense fallback={loading}>
           <Inbox />
         </Suspense>
-        <CreateTasklistForm />
       </div>
-      <Suspense fallback={loading}>
-        <Lists />
-      </Suspense>
+      <div className="flex min-w-0 flex-col gap-10">
+        <CreateTasklistForm />
+        <Suspense fallback={loading}>
+          <Lists />
+        </Suspense>
+      </div>
     </main>
   );
 }
@@ -99,9 +103,9 @@ async function Inbox() {
 async function Lists() {
   const { tasks, lists } = await loadBoard();
   return (
-    <div className="flex min-w-0 flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-10">
       {lists.length === 0 && (
-        <p className="text-muted">
+        <p className="border-t border-foreground pt-4 text-muted">
           No lists yet. Create one, then drag tasks into it.
         </p>
       )}
@@ -201,9 +205,11 @@ function Section({
 function Progress({ tasks }: { tasks: Task[] }) {
   const done = tasks.filter((t) => t.completedAt).length;
   return (
-    <span className="text-sm text-muted tabular-nums">
-      {tasks.length === 0 ? 'empty' : `${done} of ${tasks.length} done`}
-    </span>
+    tasks.length > 0 && (
+      <span className="text-sm text-muted tabular-nums">
+        {done} of {tasks.length} done
+      </span>
+    )
   );
 }
 
@@ -219,9 +225,9 @@ function TaskItems({
   empty: string;
 }) {
   return (
-    <div className="px-2 pb-2">
+    <div>
       {tasks.length === 0 ? (
-        <p className="px-2 py-3 text-sm text-muted">{empty}</p>
+        <p className="px-2 py-4 text-sm text-muted">{empty}</p>
       ) : (
         <ul className="flex flex-col">
           {tasks.map((task) => (
