@@ -50,6 +50,7 @@ export function ListShell({
   title,
   rename,
   titleClassName,
+  badge,
   collapsible,
   progress,
   doneCount,
@@ -61,6 +62,8 @@ export function ListShell({
   /** Saves a new name; lists that can't be renamed (the Inbox) leave it out. */
   rename?: (title: string) => Promise<string | undefined>;
   titleClassName: string;
+  /** Shown after the title, e.g. the "Shared" chip. */
+  badge?: React.ReactNode;
   collapsible: boolean;
   progress: React.ReactNode;
   doneCount: number;
@@ -121,6 +124,7 @@ export function ListShell({
             ) : (
               shownTitle
             )}
+            {badge}
             {rename && (
               <button
                 type="button"
@@ -161,7 +165,9 @@ export function ListShell({
       </div>
       <div hidden={!open}>
         {children}
-        {footer && <div className="flex justify-end px-4 pb-3">{footer}</div>}
+        {footer && (
+          <div className="flex justify-end gap-2 px-4 pb-3">{footer}</div>
+        )}
       </div>
     </div>
   );

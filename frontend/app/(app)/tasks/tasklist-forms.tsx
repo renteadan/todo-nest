@@ -36,16 +36,21 @@ export function CreateTasklistForm() {
   );
 }
 
-/** A task row that can be dragged onto another list's section. */
+/**
+ * A task row that can be dragged onto another list's section. Rows in a shared
+ * list pass `draggable={false}`: their tasks never leave it.
+ */
 export function DraggableTask({
   taskId,
   fromListId,
   done,
+  draggable = true,
   children,
 }: {
   taskId: number;
   fromListId: number | null;
   done: boolean;
+  draggable?: boolean;
   children: React.ReactNode;
 }) {
   const [dragging, setDragging] = useState(false);
@@ -54,6 +59,16 @@ export function DraggableTask({
   useEffect(() => {
     if (landed) landedTaskId = null;
   }, [landed]);
+  if (!draggable)
+    return (
+      <li
+        data-done={done || undefined}
+        data-landed={landed || undefined}
+        className="task-row"
+      >
+        {children}
+      </li>
+    );
   return (
     <li
       draggable

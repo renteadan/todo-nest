@@ -3,9 +3,10 @@ import { Suspense } from 'react';
 import { authFetch, currentUserId } from './lib/session';
 import { logout } from './login/actions';
 import { MenuLink } from './menu-link';
+import { NotificationBell } from './notification-bell';
 import { ThemeSwitch } from './theme-switch';
 
-/** Top bar of the logged-in pages: app name, theme switch, profile menu. */
+/** Top bar of the logged-in pages: app name, theme switch, notifications, profile menu. */
 export function Navbar() {
   return (
     <nav className="navbar">
@@ -15,6 +16,10 @@ export function Navbar() {
         </Link>
         <div className="flex items-center gap-5">
           <ThemeSwitch />
+          {/* Reads the session, so it streams in at request time. */}
+          <Suspense fallback={null}>
+            <NotificationBell />
+          </Suspense>
           <button
             type="button"
             popoverTarget="profile-menu"
