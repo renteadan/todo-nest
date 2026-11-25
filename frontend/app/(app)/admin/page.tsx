@@ -21,7 +21,7 @@ type Tasklist = { id: number; title: string };
 
 export default function AdminPage({ searchParams }: PageProps<'/admin'>) {
   return (
-    <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-10 sm:py-12 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-x-10">
+    <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-x-16 gap-y-10 px-5 pt-10 pb-24 sm:px-8 sm:pt-14 lg:grid-cols-[16rem_minmax(0,1fr)]">
       {/* All of it, title included, waits for the admin check, so a
           non-admin sees none of the page. */}
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
@@ -62,8 +62,8 @@ async function Board({
   return (
     <>
       <h1 className="display text-5xl sm:text-6xl lg:col-span-2">Admin</h1>
-      <nav aria-label="Users" className="section self-start p-2">
-        <p className="px-3 py-1 text-sm text-muted">
+      <nav aria-label="Users" className="section self-start">
+        <p className="px-3 pt-4 pb-2 text-sm text-muted tabular-nums">
           {users.length} {users.length === 1 ? 'user' : 'users'}
         </p>
         <ul className="flex flex-col">
@@ -74,9 +74,7 @@ async function Board({
                 aria-current={u.id === selected?.id ? 'page' : undefined}
                 className="user-link"
               >
-                <span className="truncate font-medium">
-                  {u.name ?? u.email}
-                </span>
+                <span className="truncate">{u.name ?? u.email}</span>
                 {u.name && (
                   <span className="truncate text-sm text-muted">{u.email}</span>
                 )}
@@ -93,7 +91,7 @@ async function Board({
             lists={lists}
           />
         ) : (
-          <p className="px-4 py-6 text-muted">
+          <p className="px-2 py-5 text-muted">
             {user ? 'No user with that id.' : 'Pick a user to see their tasks.'}
           </p>
         )}
@@ -134,9 +132,9 @@ function UserTasks({
         </span>
       </div>
       {tasks.length === 0 ? (
-        <p className="px-4 pb-4 text-sm text-muted">No tasks yet.</p>
+        <p className="px-2 pb-4 text-sm text-muted">No tasks yet.</p>
       ) : (
-        <div className="overflow-x-auto px-2 pb-2">
+        <div className="overflow-x-auto">
           <table className="admin-table">
             <thead>
               <tr>

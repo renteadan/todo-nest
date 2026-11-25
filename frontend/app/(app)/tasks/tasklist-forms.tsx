@@ -13,19 +13,32 @@ export function CreateTasklistForm() {
   const [state, action, pending] = useActionState(createTasklist, {});
 
   return (
-    <form action={action} className="flex flex-col gap-1">
-      <div className="flex items-start gap-2">
+    <form action={action} className="list-create flex flex-col gap-1">
+      {/* The button sits inside the field's border, on its right. */}
+      <div className="relative">
+        <span aria-hidden className="field-icon">
+          <svg
+            aria-hidden
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            className="size-4"
+          >
+            <path d="M8 3v10M3 8h10" />
+          </svg>
+        </span>
         <LimitedInput
           name="title"
           required
-          placeholder="New list"
+          placeholder="Name a new list"
           aria-label="List name"
           max={50}
           trim
           noun="List names"
-          className="flex-1"
         />
-        <button disabled={pending} className="btn-quiet px-5 text-base">
+        <button disabled={pending} className="field-action">
           {pending ? 'Creating…' : 'Create list'}
         </button>
       </div>

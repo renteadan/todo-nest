@@ -49,7 +49,7 @@ export function InviteActions({ listId }: { listId: number }) {
         type="button"
         disabled={pending}
         onClick={() => run(() => acceptInvite(listId))}
-        className="btn px-3 py-1 text-sm"
+        className="btn min-h-8 px-3"
       >
         Accept
       </button>
@@ -57,7 +57,7 @@ export function InviteActions({ listId }: { listId: number }) {
         type="button"
         disabled={pending}
         onClick={() => run(() => removeMember(listId, 'me'))}
-        className="btn-quiet px-3 py-1 text-sm"
+        className="btn-quiet min-h-8 px-3"
       >
         Decline
       </button>

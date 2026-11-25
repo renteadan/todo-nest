@@ -45,7 +45,7 @@ export function MembersDialog({
           setError(undefined);
           startTransition(load);
         }}
-        className="btn-quiet px-3 py-1.5"
+        className="btn-text"
       >
         Members
       </button>
@@ -56,7 +56,7 @@ export function MembersDialog({
             onClose={() => setOpen(false)}
             onClick={(e) => e.target === e.currentTarget && setOpen(false)}
             aria-labelledby="members-title"
-            className="confirm"
+            className="confirm stock"
           >
             <div className="flex flex-col gap-4 p-6">
               <h2 id="members-title" className="display text-2xl">
@@ -86,7 +86,7 @@ export function MembersDialog({
                           disabled={pending}
                           onClick={() => run(() => removeMember(listId, m.id))}
                           aria-label={`${m.acceptedAt ? 'Remove' : 'Cancel invite of'} ${m.email}`}
-                          className="btn-quiet text-sm"
+                          className="btn-text"
                         >
                           {m.acceptedAt ? 'Remove' : 'Cancel invite'}
                         </button>
@@ -131,7 +131,7 @@ export function MembersDialog({
                 {error}
               </p>
             </div>
-            <div className="flex justify-end border-t border-line bg-background px-6 py-4">
+            <div className="dialog-foot">
               <button
                 autoFocus
                 onClick={() => setOpen(false)}

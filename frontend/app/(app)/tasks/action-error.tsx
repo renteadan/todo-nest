@@ -21,7 +21,7 @@ export function ActionErrors() {
   return (
     <div
       role="alert"
-      className="fixed inset-x-4 bottom-4 z-10 mx-auto flex w-fit max-w-md items-center gap-3 rounded-lg bg-danger px-4 py-2 text-sm text-white shadow-lg empty:hidden"
+      className="fixed inset-x-4 bottom-4 z-(--z-toast) mx-auto flex w-fit max-w-md items-center gap-4 rounded-[3px] bg-foreground px-4 py-2.5 text-sm text-background shadow-(--shadow-float) empty:hidden"
     >
       {error && (
         <>
@@ -29,7 +29,7 @@ export function ActionErrors() {
           <button
             type="button"
             onClick={() => setError(undefined)}
-            className="font-medium underline-offset-4 hover:underline"
+            className="font-medium underline decoration-transparent underline-offset-4 hover:decoration-current"
           >
             Dismiss
           </button>

@@ -30,9 +30,9 @@ export function CreateTaskForm() {
           }
         });
       }}
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-3"
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <LimitedInput
           name="title"
           required
@@ -41,13 +41,24 @@ export function CreateTaskForm() {
           max={50}
           trim
           noun="Task names"
-          className="flex-1"
+          className="capture flex-1"
         />
-        <button disabled={pending} className="btn">
+        <button disabled={pending} className="btn min-h-12">
+          <svg
+            aria-hidden
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            className="size-3.5 shrink-0"
+          >
+            <path d="M8 3v10M3 8h10" />
+          </svg>
           {pending ? 'Adding…' : 'Add task'}
         </button>
       </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+      <div className="capture-meta flex flex-col gap-3 sm:flex-row sm:items-start">
         <LimitedInput
           name="description"
           placeholder="Details (optional)"

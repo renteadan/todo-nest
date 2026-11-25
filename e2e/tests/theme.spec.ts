@@ -53,7 +53,7 @@ test('the switch changes every colour at once, with no fade', async ({
   expect(soon).toBe(settled);
 });
 
-test('login page has the switch and keeps the brand panel light', async ({
+test('login page has the switch and its panel follows the theme', async ({
   page,
   context,
 }) => {
@@ -62,6 +62,6 @@ test('login page has the switch and keeps the brand panel light', async ({
   await page.goto('/login');
   await expect(page.getByRole('switch', { name: 'Dark mode' })).toBeChecked();
   expect(await luminance(page, 'body')).toBeLessThan(DARK);
-  expect(await luminance(page, '.auth-panel')).toBeGreaterThan(0.3);
-  expect(await luminance(page, '.auth-panel', 'color')).toBeLessThan(0.1);
+  expect(await luminance(page, '.auth-panel')).toBeLessThan(DARK);
+  expect(await luminance(page, '.auth-panel', 'color')).toBeGreaterThan(0.5);
 });
