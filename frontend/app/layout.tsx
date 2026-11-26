@@ -1,23 +1,19 @@
 import type { Metadata } from 'next';
-import { Hanken_Grotesk } from 'next/font/google';
-import localFont from 'next/font/local';
+import { Fredoka, Nunito } from 'next/font/google';
 import './globals.css';
 
-// Body face; Sentient (below) sets the titles.
-const hanken = Hanken_Grotesk({
-  variable: '--font-hanken',
+// Titles and the wordmark (BRAND.md: type).
+const fredoka = Fredoka({
+  variable: '--font-fredoka',
   subsets: ['latin'],
-  weight: ['400', '500'],
+  weight: ['500', '600', '700'],
 });
 
-// Self-hosted from Fontshare (ITF Free Font License).
-const sentient = localFont({
-  variable: '--font-sentient',
-  src: [
-    { path: './fonts/sentient-300.woff2', weight: '300' },
-    { path: './fonts/sentient-400.woff2', weight: '400' },
-  ],
-  fallback: ['Georgia', 'serif'],
+// Everything else.
+const nunito = Nunito({
+  variable: '--font-nunito',
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
 });
 
 export const metadata: Metadata = {
@@ -33,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     // The script sets data-theme on <html> before React hydrates.
     <html
       lang="en"
-      className={`${hanken.variable} ${sentient.variable} h-full antialiased`}
+      className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

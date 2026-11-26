@@ -143,7 +143,10 @@ function Section({
   const inbox = listId === null;
   const owner = role === 'owner';
   return (
-    <DropZone listId={listId} className={inbox ? 'section inbox' : 'section'}>
+    <DropZone
+      listId={listId}
+      className={inbox ? 'section inbox' : `section hue-${listId % 5}`}
+    >
       <ListShell
         storageKey={inbox ? 'inbox' : String(listId)}
         title={title}
